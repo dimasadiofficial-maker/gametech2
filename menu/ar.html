@@ -9,6 +9,7 @@
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   <!-- Tailwind & Font -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="manifest" href="../manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Outfit', sans-serif; margin:0; overflow:hidden; }
@@ -43,7 +44,7 @@
   <div class="ui-overlay flex flex-col justify-between p-4">
     <!-- Header -->
     <div class="flex justify-between items-center">
-      <a href="index.html" class="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full text-white text-sm hover:bg-black/60 transition">
+      <a href="../index.html" class="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full text-white text-sm hover:bg-black/60 transition">
         ← Menu
       </a>
       <div id="status" class="bg-black/50 backdrop-blur-md px-4 py-2 rounded-full text-white text-sm flex items-center gap-2">
@@ -99,13 +100,13 @@
 
   <!-- Audio elements (sesuai aset Anda) -->
   <audio id="backsound" loop preload="auto">
-    <source src="assets/sound/Backsound%20ceria%20untuk%20video%20pembelajaran%20Instrumen%20Musik%20Ceria.mp3%20(2).mpeg" type="audio/mpeg">
+    <source src="../assets/sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg" type="audio/mpeg">
   </audio>
   <audio id="click-sound" preload="auto">
-    <source src="assets/sound/klik.mpeg" type="audio/mpeg">
+    <source src="../assets/sound/klik.mpeg" type="audio/mpeg">
   </audio>
   <audio id="success-sound" preload="auto">
-    <source src="assets/sound/berhasil.mpeg" type="audio/mpeg">
+    <source src="../assets/sound/berhasil.mpeg" type="audio/mpeg">
   </audio>
 
   <!-- A-Frame Scene -->
@@ -119,7 +120,7 @@
     <!-- Marker Hiro -->
     <a-marker id="hiro-marker" preset="hiro">
       <!-- Model 3D akan diisi oleh JS -->
-      <a-entity id="ar-model" gltf-model="assets/model3D/balok.glb" scale="0.5 0.5 0.5" position="0 0 0">
+      <a-entity id="ar-model" gltf-model="../assets/model3D/balok.glb" scale="0.5 0.5 0.5" position="0 0 0">
         <a-animation attribute="rotation" dur="10000" fill="forwards" to="0 360 0" easing="linear" repeat="indefinite"></a-animation>
       </a-entity>
     </a-marker>
@@ -130,11 +131,11 @@
   <script>
     // Mapping model 3D (path sesuai folder assets/model3D/)
     const models = {
-      balok: 'assets/model3D/balok.glb',
-      bola: 'assets/model3D/bola.glb',
-      kerucut: 'assets/model3D/kerucut.glb',
-      tabung: 'assets/model3D/tabung.glb',
-      prisma: 'assets/model3D/prisma.glb'
+      balok: '../assets/model3D/balok.glb',
+      bola: '../assets/model3D/bola.glb',
+      kerucut: '../assets/model3D/kerucut.glb',
+      tabung: '../assets/model3D/tabung.glb',
+      prisma: '../assets/model3D/prisma.glb'
     };
     
     // Data lengkap materi (nama, sisi, rusuk, sudut, deskripsi, emoji)

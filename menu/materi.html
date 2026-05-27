@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Materi Bangun Ruang - Belajar 3D Interaktif</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="manifest" href="../manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
   <!-- Three.js -->
   <script type="importmap">
@@ -40,15 +41,15 @@
     }
   </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen bg-cover bg-fixed bg-center" style="background-image: url('assets/picture/background.jpg');">
+<body class="bg-gray-900 text-white min-h-screen bg-cover bg-fixed bg-center" style="background-image: url('../assets/picture/background.jpg');">
   <div class="fixed inset-0 bg-black/70 backdrop-blur-sm -z-10"></div>
 
   <!-- Audio elements -->
   <audio id="backsound" loop preload="auto">
-    <source src="assets/sound/Backsound%20ceria%20untuk%20video%20pembelajaran%20Instrumen%20Musik%20Ceria.mp3%20(2).mpeg" type="audio/mpeg">
+    <source src="../assets/sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg" type="audio/mpeg">
   </audio>
   <audio id="click-sound" preload="auto">
-    <source src="assets/sound/klik.mpeg" type="audio/mpeg">
+    <source src="../assets/sound/klik.mpeg" type="audio/mpeg">
   </audio>
 
   <div class="relative z-10 max-w-6xl mx-auto p-6 md:p-10">
@@ -56,12 +57,12 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12">
       <div>
         <div class="flex items-center gap-3 text-white/60 mb-2 flex-wrap">
-          <a href="index.html" class="hover:text-white flex items-center gap-1 transition-colors bg-white/10 px-3 py-1 rounded-full">
+          <a href="../index.html" class="hover:text-white flex items-center gap-1 transition-colors bg-white/10 px-3 py-1 rounded-full">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
             Menu
           </a>
-          <a href="ar.html" class="hover:text-white transition-colors bg-white/10 px-3 py-1 rounded-full">AR</a>
-          <a href="game.html" class="hover:text-white transition-colors bg-white/10 px-3 py-1 rounded-full">Game</a>
+          <a href="../ar.html" class="hover:text-white transition-colors bg-white/10 px-3 py-1 rounded-full">AR</a>
+          <a href="../game.html" class="hover:text-white transition-colors bg-white/10 px-3 py-1 rounded-full">Game</a>
           <a href="kuis.html" class="hover:text-white transition-colors bg-white/10 px-3 py-1 rounded-full">Kuis</a>
           <button id="muteBtn" class="ml-auto bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm flex items-center gap-1">
             <span>🔊</span> <span>Backsound</span>
@@ -108,14 +109,14 @@
 
     // ---------- Mapping shape ke file 3D (path sesuai struktur assets/model3D/) ----------
     const shapeToModel = {
-      'Kubus': 'assets/model3D/balok.glb',
-      'Balok': 'assets/model3D/balok.glb',
-      'Tabung': 'assets/model3D/tabung.glb',
-      'Bola': 'assets/model3D/bola.glb',
-      'Kerucut': 'assets/model3D/kerucut.glb',
-      'Limas Segiempat': 'assets/model3D/kerucut.glb', // fallback
-      'Prisma Segitiga': 'assets/model3D/prisma.glb',
-      'Prisma Segienam': 'assets/model3D/prisma.glb'
+      'Kubus': '../assets/model3D/balok.glb',
+      'Balok': '../assets/model3D/balok.glb',
+      'Tabung': '../assets/model3D/tabung.glb',
+      'Bola': '../assets/model3D/bola.glb',
+      'Kerucut': '../assets/model3D/kerucut.glb',
+      'Limas Segiempat': '../assets/model3D/kerucut.glb', // fallback
+      'Prisma Segitiga': '../assets/model3D/prisma.glb',
+      'Prisma Segienam': '../assets/model3D/prisma.glb'
     };
 
     // Data materi

@@ -6,6 +6,7 @@
   <title>AR Bangun Ruang</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
 
   <style>
@@ -29,6 +30,14 @@
 
 <body class="h-screen w-screen bg-cover bg-center"
 style="background-image: url('assets/picture/background.jpg');">
+
+  <!-- Audio elements -->
+  <audio id="backsound" loop preload="auto">
+    <source src="assets/sound/Backsound%20ceria%20untuk%20video%20pembelajaran%20Instrumen%20Musik%20Ceria.mp3%20(2).mpeg" type="audio/mpeg">
+  </audio>
+  <audio id="click-sound" preload="auto">
+    <source src="assets/sound/klik.mpeg" type="audio/mpeg">
+  </audio>
 
 <!-- overlay -->
 <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>

@@ -6,6 +6,7 @@
     <title>Game Tambal Lubang - Mobil Jalan</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="../manifest.json">
     <style>
       body {
         margin: 0;
@@ -36,7 +37,7 @@
   <body class="h-screen text-white">
     <div class="ui-overlay flex flex-col">
       <div class="flex justify-between items-center px-6 py-4 bg-black/50 backdrop-blur-md z-20">
-        <a href="index.html" class="text-lg font-medium hover:text-blue-400">← MENU</a>
+        <a href="../index.html" class="text-lg font-medium hover:text-blue-400">← MENU</a>
         <div class="text-2xl font-bold">
           SKOR: <span id="score" class="text-yellow-400">0</span>
         </div>
@@ -57,7 +58,7 @@
             <button onclick="location.reload()" class="bg-gradient-to-r from-emerald-500 to-teal-600 px-10 py-4 rounded-2xl font-semibold text-lg">
               🔄 Main Lagi
             </button>
-            <a href="index.html" class="bg-white/10 hover:bg-white/20 px-10 py-4 rounded-2xl font-semibold text-lg">
+            <a href="../index.html" class="bg-white/10 hover:bg-white/20 px-10 py-4 rounded-2xl font-semibold text-lg">
               ← Kembali ke Menu
             </a>
           </div>
@@ -68,17 +69,17 @@
     <!-- Audio elements -->
     <!-- Suara mobil (volume tinggi) -->
     <audio id="car-sound" loop preload="auto">
-      <source src="assets/sound/suaramobil.mpeg" type="audio/mpeg">
+      <source src="../assets/sound/suaramobil.mpeg" type="audio/mpeg">
     </audio>
     <!-- Efek suara (volume sedang) -->
     <audio id="success-sound" preload="auto">
-      <source src="assets/sound/berhasil.mpeg" type="audio/mpeg">
+      <source src="../assets/sound/berhasil.mpeg" type="audio/mpeg">
     </audio>
     <audio id="gameover-sound" preload="auto">
-      <source src="assets/sound/game%20over.mpeg" type="audio/mpeg">
+      <source src="../assets/sound/gameover.mpeg" type="audio/mpeg">
     </audio>
     <audio id="click-sound" preload="auto">
-      <source src="assets/sound/klik.mpeg" type="audio/mpeg">
+      <source src="../assets/sound/klik.mpeg" type="audio/mpeg">
     </audio>
 
     <script type="importmap">

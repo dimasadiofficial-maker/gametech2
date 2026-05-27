@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Game Tambal Lubang - Mobil Jalan</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #0f172a;
+        font-family: "Outfit", system-ui, sans-serif;
+      }
+      canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1;
+      }
+      .ui-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 10;
+      }
+      #gameover {
+        pointer-events: auto;
+      }
+    </style>
+  </head>
+  <body class="h-screen text-white">
+    <div class="ui-overlay flex flex-col">
+      <div class="flex justify-between items-center px-6 py-4 bg-black/50 backdrop-blur-md z-20">
+        <a href="index.html" class="text-lg font-medium hover:text-blue-400">← MENU</a>
+        <div class="text-2xl font-bold">
+          SKOR: <span id="score" class="text-yellow-400">0</span>
+        </div>
+      </div>
+      <div class="flex-1 flex items-center justify-center">
+        <div class="bg-black/70 backdrop-blur-md px-8 py-3 rounded-3xl text-3xl font-bold text-center">
+          Target: <span id="shape-name" class="text-blue-400">BALOK</span>
+        </div>
+      </div>
+
+      <div id="gameover" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-50">
+        <div class="text-center">
+          <h1 class="text-6xl font-black text-red-500 mb-6">GAME OVER</h1>
+          <p class="text-3xl mb-8">
+            Skor Akhir: <span id="final-score" class="text-yellow-400 font-bold">0</span>
+          </p>
+          <div class="flex gap-4 justify-center">
+            <button onclick="location.reload()" class="bg-gradient-to-r from-emerald-500 to-teal-600 px-10 py-4 rounded-2xl font-semibold text-lg">
+              🔄 Main Lagi
+            </button>
+            <a href="index.html" class="bg-white/10 hover:bg-white/20 px-10 py-4 rounded-2xl font-semibold text-lg">
+              ← Kembali ke Menu
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio elements -->
+    <!-- Suara mobil (volume tinggi) -->
+    <audio id="car-sound" loop preload="auto">
+      <source src="assets/sound/suaramobil.mpeg" type="audio/mpeg">
+    </audio>
+    <!-- Efek suara (volume sedang) -->
+    <audio id="success-sound" preload="auto">
+      <source src="assets/sound/berhasil.mpeg" type="audio/mpeg">
+    </audio>
+    <audio id="gameover-sound" preload="auto">
+      <source src="assets/sound/game%20over.mpeg" type="audio/mpeg">
+    </audio>
+    <audio id="click-sound" preload="auto">
+      <source src="assets/sound/klik.mpeg" type="audio/mpeg">
+    </audio>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+      // ========== AUDIO MANAGEMENT ==========
+      const carAudio = document.getElementById("car-sound");
+      const successAudio = document.getElementById("success-sound");
+      const gameoverAudio = document.getElementById("gameover-sound");
+      const clickAudio = document.getElementById("click-sound");
+
+      // Atur volume: suara mobil lebih keras
+      carAudio.volume = 0.9;      // tinggi
+      successAudio.volume = 0.5;
+      gameoverAudio.volume = 0.6;
+      clickAudio.volume = 0.4;
+
+      let audioEnabled = false;
+
+      function enableAudio() {
+        if (audioEnabled) return;
+        // Inisialisasi semua audio (play lalu pause) untuk membuka izin browser
+        const initAudio = (audio) => {
+          audio.play().then(() => {
+            audio.pause();
+            audio.currentTime = 0;
+          }).catch(e => console.log("init audio error", e));
+        };
+        initAudio(carAudio);
+        initAudio(successAudio);
+        initAudio(gameoverAudio);
+        initAudio(clickAudio);
+        audioEnabled = true;
+        // Mulai suara mobil looping
+        carAudio.loop = true;
+        carAudio.play().catch(e => console.log("car audio play error", e));
+      }
+
+      // Aktifkan audio setelah user klik pertama
+      const enableOnce = () => {
+        enableAudio();
+        document.removeEventListener("click", enableOnce);
+        document.removeEventListener("touchstart", enableOnce);
+      };
+      document.addEventListener("click", enableOnce);
+      document.addEventListener("touchstart", enableOnce);
+
+      function playSuccess() {
+        if (!audioEnabled) return;
+        successAudio.currentTime = 0;
+        successAudio.play().catch(e => console.log("success error"));
+      }
+
+      function playGameOver() {
+        if (!audioEnabled) return;
+        gameoverAudio.currentTime = 0;
+        gameoverAudio.play().catch(e => console.log("gameover error"));
+        // Hentikan suara mobil saat game over
+        carAudio.pause();
+        carAudio.currentTime = 0;
+      }
+
+      function playClick() {
+        if (!audioEnabled) return;
+        clickAudio.currentTime = 0;
+        clickAudio.play().catch(e => console.log("click error"));
+      }
+
+      // ========== THREE.JS SETUP ==========
+      const loader = new GLTFLoader();
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      let car = null;
+      let hole = null;
+      let draggableObjects = [];
+      let selectedObject = null;
+      let score = 0;
+      let currentTarget = "";
+      let isGameOver = false;
+
+      const scoreEl = document.getElementById("score");
+      const shapeNameEl = document.getElementById("shape-name");
+      const gameoverEl = document.getElementById("gameover");
+      const finalScoreEl = document.getElementById("final-score");
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x1e293b);
+
+      const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(0, 5, 12);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // Lighting
+      scene.add(new THREE.AmbientLight(0xffffff, 1.4));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+      dirLight.position.set(5, 10, 8);
+      scene.add(dirLight);
+      const fillLight = new THREE.PointLight(0x88aaff, 0.5);
+      fillLight.position.set(2, 3, 4);
+      scene.add(fillLight);
+
+      // Background Jalan
+      let roadTexture;
+      const bgLoader = new THREE.TextureLoader();
+      bgLoader.load("assets/picture/imagejalan.jpg", (texture) => {
+        roadTexture = texture;
+        roadTexture.wrapS = THREE.RepeatWrapping;
+        roadTexture.wrapT = THREE.RepeatWrapping;
+        roadTexture.repeat.set(4, 1);
+        scene.background = roadTexture;
+      });
+
+      function normalizeModel(model) {
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3()).length();
+        const center = box.getCenter(new THREE.Vector3());
+        model.position.sub(center);
+        if (size > 0) model.scale.setScalar(2.0 / size);
+      }
+
+      // Load mobil
+      loader.load("assets/model3D/mobil.glb", (gltf) => {
+        car = gltf.scene;
+        normalizeModel(car);
+        car.scale.multiplyScalar(2);
+        car.position.set(-15.3, 1.0, -3);
+        car.rotation.y = Math.PI / -0.2;
+        scene.add(car);
+      });
+
+      const shapes = [
+        { name: "balok", file: "assets/model3D/balok.glb" },
+        { name: "bola", file: "assets/model3D/bola.glb" },
+        { name: "kerucut", file: "assets/model3D/kerucut.glb" },
+        { name: "tabung", file: "assets/model3D/tabung.glb" },
+        { name: "prisma", file: "assets/model3D/prisma.glb" }
+      ];
+
+      shapes.forEach((shape, index) => {
+        loader.load(shape.file, (gltf) => {
+          const obj = gltf.scene;
+          normalizeModel(obj);
+          obj.position.set(-3 + index * 2, 0.6, 1);
+          obj.userData.shape = shape.name;
+          obj.userData.originalPos = obj.position.clone();
+          scene.add(obj);
+          draggableObjects.push(obj);
+        });
+      });
+
+      function createHole(targetShape) {
+        if (hole) scene.remove(hole);
+        const shapeData = shapes.find(s => s.name === targetShape);
+        if (!shapeData) return;
+        loader.load(shapeData.file, (gltf) => {
+          hole = gltf.scene;
+          normalizeModel(hole);
+          hole.scale.setScalar(0.9);
+          hole.traverse(child => {
+            if (child.isMesh) {
+              child.material = child.material.clone();
+              child.material.color.set(0x222222);
+              child.material.transparent = true;
+              child.material.opacity = 0.7;
+            }
+          });
+          hole.position.set(15, 0.8, -4);
+          scene.add(hole);
+        });
+      }
+
+      function nextTarget() {
+        const randomIndex = Math.floor(Math.random() * shapes.length);
+        currentTarget = shapes[randomIndex].name;
+        shapeNameEl.textContent = currentTarget.toUpperCase();
+        createHole(currentTarget);
+      }
+
+      nextTarget();
+
+      // Drag & Drop
+      window.addEventListener("pointerdown", (e) => {
+        if (isGameOver) return;
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(draggableObjects, true);
+        if (intersects.length > 0) {
+          selectedObject = intersects[0].object.parent || intersects[0].object;
+          playClick();
+        }
+      });
+
+      window.addEventListener("pointermove", (e) => {
+        if (!selectedObject || isGameOver) return;
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.8);
+        const point = new THREE.Vector3();
+        raycaster.ray.intersectPlane(plane, point);
+        if (point) {
+          selectedObject.position.x = point.x;
+          selectedObject.position.z = point.z;
+        }
+      });
+
+      window.addEventListener("pointerup", () => {
+        if (!selectedObject || isGameOver || !hole) {
+          selectedObject = null;
+          return;
+        }
+        const distanceToHole = selectedObject.position.distanceTo(hole.position);
+        if (distanceToHole < 4.5 && selectedObject.userData.shape === currentTarget) {
+          score += 25;
+          scoreEl.textContent = Math.floor(score);
+          playSuccess();
+          if (car) car.position.x += 2.5;
+          selectedObject.position.copy(selectedObject.userData.originalPos);
+          nextTarget();
+        } else if (distanceToHole < 4.5) {
+          isGameOver = true;
+          playGameOver();
+          finalScoreEl.textContent = Math.floor(score);
+          gameoverEl.classList.remove("hidden");
+        } else {
+          selectedObject.position.copy(selectedObject.userData.originalPos);
+        }
+        selectedObject = null;
+      });
+
+      // Animasi
+      let roadOffset = 0;
+      let holeMoveSpeed = 0.005;
+      let carSpeed = 0.015;
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (isGameOver) {
+          renderer.render(scene, camera);
+          return;
+        }
+        if (car) car.position.x += carSpeed;
+        if (hole) hole.position.x -= holeMoveSpeed;
+        if (roadTexture) {
+          roadOffset -= 0.002;
+          roadTexture.offset.set(roadOffset, 0);
+        }
+        // Game over jika mobil melewati lubang
+        if (hole && car && car.position.x > hole.position.x) {
+          isGameOver = true;
+          playGameOver();
+          finalScoreEl.textContent = Math.floor(score);
+          gameoverEl.classList.remove("hidden");
+        }
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>

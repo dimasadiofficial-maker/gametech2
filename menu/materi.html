@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Materi Bangun Ruang - Belajar 3D Interaktif</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <!-- Three.js -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Outfit', sans-serif; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    .glass-card:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .masonry {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+    .gradient-text {
+      background: linear-gradient(45deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen bg-cover bg-fixed bg-center" style="background-image: url('assets/picture/background.jpg');">
+  <div class="fixed inset-0 bg-black/70 backdrop-blur-sm -z-10"></div>
+
+  <!-- Audio elements -->
+  <audio id="backsound" loop preload="auto">
+    <source src="assets/sound/Backsound%20ceria%20untuk%20video%20pembelajaran%20Instrumen%20Musik%20Ceria.mp3%20(2).mpeg" type="audio/mpeg">
+  </audio>
+  <audio id="click-sound" preload="auto">
+    <source src="assets/sound/klik.mpeg" type="audio/mpeg">
+  </audio>
+
+  <div class="relative z-10 max-w-6xl mx-auto p-6 md:p-10">
+    <!-- Header + navigasi -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12">
+      <div>
+        <div class="flex items-center gap-3 text-white/60 mb-2 flex-wrap">
+          <a href="index.html" class="hover:text-white flex items-center gap-1 transition-colors bg-white/10 px-3 py-1 rounded-full">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            Menu
+          </a>
+          <a href="ar.html" class="hover:text-white transition-colors bg-white/10 px-3 py-1 rounded-full">AR</a>
+          <a href="game.html" class="hover:text-white transition-colors bg-white/10 px-3 py-1 rounded-full">Game</a>
+          <a href="kuis.html" class="hover:text-white transition-colors bg-white/10 px-3 py-1 rounded-full">Kuis</a>
+          <button id="muteBtn" class="ml-auto bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm flex items-center gap-1">
+            <span>🔊</span> <span>Backsound</span>
+          </button>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-black gradient-text">Materi Bangun Ruang</h1>
+        <p class="text-white/60 mt-2">Klik kartu untuk melihat model 3D + suara</p>
+      </div>
+    </div>
+
+    <!-- Grid materi -->
+    <div class="masonry" id="materi-container"></div>
+  </div>
+
+  <!-- Modal Detail 3D -->
+  <div id="detail-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center p-4 z-50 transition-all duration-300">
+    <div class="bg-gray-800/90 border border-white/20 rounded-[2rem] p-6 max-w-4xl w-full text-white relative shadow-2xl">
+      <button onclick="closeDetail()" class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors z-20 text-2xl font-light">
+        &times;
+      </button>
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- Canvas 3D -->
+        <div class="bg-black/40 rounded-xl overflow-hidden aspect-square flex items-center justify-center relative">
+          <canvas id="model-canvas" class="w-full h-full" style="display: block;"></canvas>
+          <div id="loading-indicator" class="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-sm">Memuat model 3D...</div>
+        </div>
+        <!-- Info teks -->
+        <div class="space-y-4">
+          <h2 id="detail-title" class="text-3xl font-black gradient-text"></h2>
+          <div class="bg-white/5 p-4 rounded-xl border border-white/10">
+            <h3 class="text-blue-400 font-bold text-xs uppercase tracking-widest mb-2">Ciri-ciri Utama</h3>
+            <ul id="detail-props" class="space-y-2 text-white/80"></ul>
+          </div>
+          <div id="detail-desc" class="text-white/60 text-sm leading-relaxed italic"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    // ---------- Mapping shape ke file 3D (path sesuai struktur assets/model3D/) ----------
+    const shapeToModel = {
+      'Kubus': 'assets/model3D/balok.glb',
+      'Balok': 'assets/model3D/balok.glb',
+      'Tabung': 'assets/model3D/tabung.glb',
+      'Bola': 'assets/model3D/bola.glb',
+      'Kerucut': 'assets/model3D/kerucut.glb',
+      'Limas Segiempat': 'assets/model3D/kerucut.glb', // fallback
+      'Prisma Segitiga': 'assets/model3D/prisma.glb',
+      'Prisma Segienam': 'assets/model3D/prisma.glb'
+    };
+
+    // Data materi
+    const shapes = [
+      { name: 'Kubus', props: ['6 sisi persegi sama luas', '12 rusuk sama panjang', '8 titik sudut'], desc: 'Contoh: Dadu, rubik.' },
+      { name: 'Balok', props: ['6 sisi (3 pasang sejajar)', '12 rusuk', '8 titik sudut'], desc: 'Contoh: Kotak sepatu, lemari.' },
+      { name: 'Tabung', props: ['3 sisi (alas, tutup, selimut)', '2 rusuk lengkung', 'Tidak ada titik sudut'], desc: 'Contoh: Kaleng, pipa.' },
+      { name: 'Bola', props: ['1 sisi lengkung', 'Tidak ada rusuk', 'Tidak ada titik sudut'], desc: 'Contoh: Bola basket, kelereng.' },
+      { name: 'Kerucut', props: ['2 sisi (alas & selimut)', '1 rusuk lengkung', '1 titik puncak'], desc: 'Contoh: Topi ulang tahun, cone es krim.' },
+      { name: 'Limas Segiempat', props: ['5 sisi (1 alas segiempat, 4 tegak)', '8 rusuk', '5 titik sudut'], desc: 'Contoh: Piramida, atap rumah.' },
+      { name: 'Prisma Segitiga', props: ['5 sisi (2 segitiga, 3 persegi)', '9 rusuk', '6 titik sudut'], desc: 'Contoh: Tenda, cokelat Toblerone.' },
+      { name: 'Prisma Segienam', props: ['8 sisi (2 segienam, 6 persegi)', '18 rusuk', '12 titik sudut'], desc: 'Contoh: Mur baut, pensil segienam.' }
+    ];
+
+    // Render kartu
+    const container = document.getElementById('materi-container');
+    shapes.forEach(shape => {
+      const card = document.createElement('div');
+      card.className = 'glass-card rounded-[2rem] p-6 cursor-pointer group';
+      card.innerHTML = `
+        <div class="flex flex-col items-center gap-4">
+          <div class="bg-white/5 rounded-2xl p-4 w-full h-40 flex justify-center items-center border border-white/5 group-hover:bg-white/10 transition-colors">
+            <span class="text-6xl drop-shadow-2xl">${getEmoji(shape.name)}</span>
+          </div>
+          <div class="text-center">
+            <h3 class="text-xl font-bold mb-1">${shape.name}</h3>
+            <span class="text-xs text-white/40 uppercase tracking-widest font-semibold">Klik untuk 3D</span>
+          </div>
+        </div>
+      `;
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Mainkan suara klik
+        const clickAudio = document.getElementById('click-sound');
+        if (clickAudio) {
+          clickAudio.currentTime = 0;
+          clickAudio.play().catch(err => console.log("Audio klik error:", err));
+        }
+        openDetail(shape);
+      });
+      container.appendChild(card);
+    });
+
+    function getEmoji(name) {
+      const map = { 'Kubus':'🧊','Balok':'📦','Tabung':'🥫','Bola':'⚽','Kerucut':'🎩','Limas Segiempat':'🔺','Prisma Segitiga':'🔷','Prisma Segienam':'🔶' };
+      return map[name] || '🧩';
+    }
+
+    // ---------- Three.js state ----------
+    let currentRenderer = null;
+    let currentScene = null;
+    let currentCamera = null;
+    let currentControls = null;
+    let animationId = null;
+    let currentModel = null;
+
+    async function openDetail(shape) {
+      const modal = document.getElementById('detail-modal');
+      document.getElementById('detail-title').innerText = shape.name;
+      const propsList = document.getElementById('detail-props');
+      propsList.innerHTML = '';
+      shape.props.forEach(p => {
+        const li = document.createElement('li');
+        li.className = 'flex items-start gap-2';
+        li.innerHTML = `<span class="text-blue-500 mt-1">•</span> <span>${p}</span>`;
+        propsList.appendChild(li);
+      });
+      document.getElementById('detail-desc').innerText = shape.desc;
+      
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      
+      // Load 3D model
+      const modelPath = shapeToModel[shape.name];
+      if (modelPath) {
+        init3DViewer(modelPath);
+      } else {
+        const loadingDiv = document.getElementById('loading-indicator');
+        loadingDiv.innerHTML = 'Model 3D tidak tersedia';
+        loadingDiv.style.display = 'flex';
+      }
+    }
+
+    function init3DViewer(glbPath) {
+      // Bersihkan canvas lama jika ada
+      const oldCanvas = document.getElementById('model-canvas');
+      if (currentRenderer) {
+        if (animationId) cancelAnimationFrame(animationId);
+        currentRenderer.dispose();
+        // ganti canvas baru
+        const parent = oldCanvas.parentNode;
+        const newCanvas = document.createElement('canvas');
+        newCanvas.id = 'model-canvas';
+        newCanvas.className = 'w-full h-full';
+        newCanvas.style.display = 'block';
+        parent.replaceChild(newCanvas, oldCanvas);
+      }
+      
+      const canvas = document.getElementById('model-canvas');
+      const loadingDiv = document.getElementById('loading-indicator');
+      loadingDiv.style.display = 'flex';
+      loadingDiv.innerHTML = 'Memuat model 3D...';
+      
+      // Setup scene
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x111122);
+      scene.environment = null;
+      
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0x404060);
+      scene.add(ambientLight);
+      const mainLight = new THREE.DirectionalLight(0xffffff, 1);
+      mainLight.position.set(2, 5, 3);
+      scene.add(mainLight);
+      const fillLight = new THREE.PointLight(0x4466cc, 0.5);
+      fillLight.position.set(1, 2, 2);
+      scene.add(fillLight);
+      const backLight = new THREE.PointLight(0xffaa66, 0.3);
+      backLight.position.set(-1, 1, -2);
+      scene.add(backLight);
+      
+      // Camera
+      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+      camera.position.set(1.5, 1.5, 2);
+      camera.lookAt(0, 0, 0);
+      
+      // Renderer
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: false });
+      // Ukuran sementara
+      const container = document.querySelector('#detail-modal .grid');
+      const size = container.clientWidth > 800 ? 350 : 250;
+      renderer.setSize(size, size);
+      
+      // Controls
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 1.5;
+      controls.enableZoom = true;
+      controls.enablePan = false;
+      
+      // Load GLTF
+      const loader = new GLTFLoader();
+      loader.load(glbPath, (gltf) => {
+        if (currentModel) scene.remove(currentModel);
+        currentModel = gltf.scene;
+        scene.add(currentModel);
+        // Center dan scale
+        const box = new THREE.Box3().setFromObject(currentModel);
+        const center = box.getCenter(new THREE.Vector3());
+        currentModel.position.sub(center);
+        const sizeBox = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(sizeBox.x, sizeBox.y, sizeBox.z);
+        const scale = 1.2 / maxDim;
+        currentModel.scale.set(scale, scale, scale);
+        loadingDiv.style.display = 'none';
+      }, undefined, (error) => {
+        console.error('Error loading model:', error);
+        loadingDiv.innerHTML = 'Gagal memuat model 3D. Pastikan file .glb tersedia.';
+      });
+      
+      function animate() {
+        animationId = requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+      
+      // Simpan referensi untuk cleanup
+      currentRenderer = renderer;
+      currentScene = scene;
+      currentCamera = camera;
+      currentControls = controls;
+      
+      // Resize handler
+      const resizeObserver = () => {
+        if (!renderer) return;
+        const newSize = document.querySelector('#detail-modal .grid').clientWidth > 800 ? 350 : 250;
+        renderer.setSize(newSize, newSize);
+        camera.aspect = 1;
+        camera.updateProjectionMatrix();
+      };
+      window.addEventListener('resize', resizeObserver);
+      // simpan fungsi untuk dihapus nanti? tidak perlu, karena modal ditutup akan dispose renderer
+    }
+
+    window.closeDetail = function() {
+      const modal = document.getElementById('detail-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      if (animationId) cancelAnimationFrame(animationId);
+      if (currentRenderer) {
+        currentRenderer.dispose();
+        currentRenderer = null;
+      }
+      currentModel = null;
+    };
+
+    // ---------- Backsound management (user gesture first) ----------
+    const backsound = document.getElementById('backsound');
+    let backsoundMuted = false;
+    const muteBtn = document.getElementById('muteBtn');
+    let audioEnabled = false;
+    
+    function enableAudio() {
+      if (audioEnabled) return;
+      backsound.play().then(() => {
+        audioEnabled = true;
+        backsound.volume = 0.3;
+      }).catch(e => console.log("Autoplay blocked, waiting for user click"));
+    }
+    // Trigger audio on first user interaction anywhere
+    const enableOnce = () => {
+      enableAudio();
+      document.removeEventListener('click', enableOnce);
+      document.removeEventListener('touchstart', enableOnce);
+    };
+    document.addEventListener('click', enableOnce);
+    document.addEventListener('touchstart', enableOnce);
+    
+    muteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (backsoundMuted) {
+        backsound.play().catch(e=>console.log);
+        muteBtn.innerHTML = '<span>🔊</span> <span>Backsound</span>';
+      } else {
+        backsound.pause();
+        muteBtn.innerHTML = '<span>🔇</span> <span>Backsound</span>';
+      }
+      backsoundMuted = !backsoundMuted;
+    });
+    
+    // Tutup modal jika klik di luar
+    document.getElementById('detail-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'detail-modal') closeDetail();
+    });
+  </script>
+</body>
+</html>

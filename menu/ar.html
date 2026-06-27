@@ -8,7 +8,7 @@
   <link rel="manifest" href="../manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
   <!-- model-viewer untuk mode 3D Viewer (fallback & standalone) -->
-  <script type="module" src="https://unpkg.com/@google/model-viewer@3.3.0/dist/model-viewer.min.js"></script> 
+  <script type="module" src="https://unpkg.com/@google/model-viewer@3.3.0/dist/model-viewer.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
     html, body { width:100%; height:100%; overflow:hidden; font-family:'Outfit',sans-serif; background:#0b0f1e; }
@@ -165,7 +165,7 @@ npx http-server -S -C 192.168.56.1+1.pem -K 192.168.56.1+1-key.pem -p 8080</div>
 ══════════════════════════════════════════════ -->
 <div id="viewer-wrap">
   <model-viewer id="main-mv"
-    src="../assets/model3D/balok.glb"
+    src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Model3D/balok.glb"
     alt="Model 3D Bangun Ruang"
     camera-controls
     auto-rotate rotation-per-second="20deg"
@@ -260,30 +260,32 @@ npx http-server -S -C 192.168.56.1+1.pem -K 192.168.56.1+1-key.pem -p 8080</div>
 </div>
 
 <!-- AUDIO -->
-<audio id="snd-bg"      loop><source src="../assets/sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg"></audio>
-<audio id="snd-click"       ><source src="../assets/sound/klik.mpeg"></audio>
-<audio id="snd-success"     ><source src="../assets/sound/berhasil.mpeg"></audio>
+<audio id="snd-bg"      loop><source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg"></audio>
+<audio id="snd-click"       ><source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/klik.mpeg"></audio>
+<audio id="snd-success"     ><source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/berhasil.mpeg"></audio>
 
 <script>
 /* ════════════════════════════════════════
    DATA SHAPES
 ════════════════════════════════════════ */
+const BASE_URL = 'https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Model3D/';
+
 const SHAPES = [
-  { key:'kubus', label:'Kubus', emoji:'🧊', glb:'../assets/model3D/kubus.glb',
+  { key:'kubus', label:'Kubus', emoji:'🧊', glb: BASE_URL + 'kubus.glb',
     sisi:6, rusuk:12, sudut:8, desc:'Contoh: Dadu, rubik, kotak kado.' },
-  { key:'balok',   label:'Balok',   emoji:'📦', glb:'../assets/model3D/balok.glb',
+  { key:'balok',   label:'Balok',   emoji:'📦', glb: BASE_URL + 'balok.glb',
     sisi:6, rusuk:12, sudut:8, desc:'Kotak sepatu, lemari, batu bata' },
-  { key:'bola',    label:'Bola',    emoji:'⚽', glb:'../assets/model3D/bola.glb',
+  { key:'bola',    label:'Bola',    emoji:'⚽', glb: BASE_URL + 'bola.glb',
     sisi:1, rusuk:0,  sudut:0, desc:'Bola basket, kelereng, melon' },
-  { key:'kerucut', label:'Kerucut', emoji:'🎩', glb:'../assets/model3D/kerucut.glb',
+  { key:'kerucut', label:'Kerucut', emoji:'🎩', glb: BASE_URL + 'kerucut.glb',
     sisi:2, rusuk:1,  sudut:1, desc:'Topi ulang tahun, cone es krim' },
-  { key:'tabung',  label:'Tabung',  emoji:'🥫', glb:'../assets/model3D/tabung.glb',
+  { key:'tabung',  label:'Tabung',  emoji:'🥫', glb: BASE_URL + 'tabung.glb',
     sisi:3, rusuk:2,  sudut:0, desc:'Kaleng, pipa, botol minum' },
-  { key:'limas',   label:'Limas Segiempat', emoji:'🔺', glb:'../assets/model3D/limassegi4.glb',
+  { key:'limas',   label:'Limas Segiempat', emoji:'🔺', glb: BASE_URL + 'limassegi4.glb',
     sisi:5, rusuk:8,  sudut:5, desc:'Contoh: Piramida Mesir, atap rumah joglo.' },
-  { key:'prisma',  label:'Prisma',  emoji:'🔺', glb:'../assets/model3D/prisma.glb',
+  { key:'prisma',  label:'Prisma',  emoji:'🔺', glb: BASE_URL + 'prisma.glb',
     sisi:5, rusuk:9,  sudut:6, desc:'Tenda pramuka, cokelat Toblerone' },
-  { key:'prismasegi6', label:'Prisma Segienam', emoji:'🔶', glb:'../assets/model3D/prismasegi6.glb',
+  { key:'prismasegi6', label:'Prisma Segienam', emoji:'🔶', glb: BASE_URL + 'prismasegi6.glb',
       sisi:8, rusuk:18, sudut:12, desc:'Contoh: Mur baut, pensil segienam, sarang lebah.' },
 ];
 
@@ -390,7 +392,7 @@ function setMode(mode) {
 
     // Pastikan model-viewer aktif
     document.getElementById('main-mv').setAttribute('src',
-      SHAPES.find(s => s.key === currentShape)?.glb || '../assets/model3D/balok.glb'
+      SHAPES.find(s => s.key === currentShape)?.glb || BASE_URL + 'balok.glb'
     );
   }
 }

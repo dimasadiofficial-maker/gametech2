@@ -289,10 +289,10 @@
 
 <!-- Audio -->
 <audio id="backsound" loop preload="auto">
-  <source src="assets/sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg" type="audio/mpeg">
+  <source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg" type="audio/mpeg">
 </audio>
 <audio id="clickSound" preload="auto">
-  <source src="assets/sound/klik.mpeg" type="audio/mpeg">
+  <source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/klik.mpeg" type="audio/mpeg">
 </audio>
 
 <!-- Three.js -->
@@ -338,9 +338,8 @@ scene.add(rimLight);
 
 // Load model 3D - Karakter DIAM (tanpa animasi idle)
 let model;
-const basePath = '/gametech2'; // Ganti dengan nama repo Anda
 const loader = new GLTFLoader();
-loader.load(`${basePath}/assets/model3D/anaksd.glb`, (gltf) => {
+loader.load('https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Model3D/anaksd.glb', (gltf) => {
   model = gltf.scene;
   const box = new THREE.Box3().setFromObject(model);
   const center = box.getCenter(new THREE.Vector3());

@@ -381,10 +381,10 @@
 
 <!-- AUDIO -->
 <audio id="backsound" loop preload="auto">
-  <source src="../assets/sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg" type="audio/mpeg">
+  <source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg" type="audio/mpeg">
 </audio>
 <audio id="click-sound" preload="auto">
-  <source src="../assets/sound/klik.mpeg" type="audio/mpeg">
+  <source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/klik.mpeg" type="audio/mpeg">
 </audio>
 
 <div class="content-wrap">
@@ -432,29 +432,30 @@
   import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
   /* ========= DATA BANGUN RUANG (tetap) ========= */
+  const BASE_URL = 'https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Model3D/';
   const SHAPES = [
-    { name:'Kubus',          emoji:'🧊', glb:'/gametech2/../assets/model3D/kubus.glb',
+    { name:'Kubus',          emoji:'🧊', glb: BASE_URL + 'kubus.glb',
       props:['6 sisi persegi sama luas','12 rusuk sama panjang','8 titik sudut'],
       desc:'Contoh: Dadu, rubik, kotak kado.' },
-    { name:'Balok',          emoji:'📦', glb:'/gametech2/../assets/model3D/balok.glb',
+    { name:'Balok',          emoji:'📦', glb: BASE_URL + 'balok.glb',
       props:['6 sisi (3 pasang sejajar)','12 rusuk','8 titik sudut'],
       desc:'Contoh: Kotak sepatu, lemari, batu bata.' },
-    { name:'Tabung',         emoji:'🥫', glb:'/gametech2/../assets/model3D/tabung.glb',
+    { name:'Tabung',         emoji:'🥫', glb: BASE_URL + 'tabung.glb',
       props:['3 sisi (alas, tutup, selimut)','2 rusuk lengkung','Tidak ada titik sudut'],
       desc:'Contoh: Kaleng susu, pipa, botol minum.' },
-    { name:'Bola',           emoji:'⚽', glb:'/gametech2/../assets/model3D/bola.glb',
+    { name:'Bola',           emoji:'⚽', glb: BASE_URL + 'bola.glb',
       props:['1 sisi lengkung','Tidak ada rusuk','Tidak ada titik sudut'],
       desc:'Contoh: Bola basket, kelereng, planet.' },
-    { name:'Kerucut',        emoji:'🎩', glb:'/gametech2/../assets/model3D/kerucut.glb',
+    { name:'Kerucut',        emoji:'🎩', glb: BASE_URL + 'kerucut.glb',
       props:['2 sisi (alas & selimut)','1 rusuk lengkung','1 titik puncak'],
       desc:'Contoh: Topi ulang tahun, cone es krim, tumpeng.' },
-    { name:'Limas Segiempat',emoji:'🔺', glb:'/gametech2/../assets/model3D/limassegi4.glb',
+    { name:'Limas Segiempat',emoji:'🔺', glb: BASE_URL + 'limassegi4.glb',
       props:['5 sisi (1 alas, 4 tegak)','8 rusuk','5 titik sudut'],
       desc:'Contoh: Piramida Mesir, atap rumah joglo.' },
-    { name:'Prisma Segitiga', emoji:'🔷', glb:'/gametech2/../assets/model3D/prisma.glb',
+    { name:'Prisma Segitiga', emoji:'🔷', glb: BASE_URL + 'prisma.glb',
       props:['5 sisi (2 segitiga, 3 persegi)','9 rusuk','6 titik sudut'],
       desc:'Contoh: Tenda, cokelat Toblerone, atap rumah.' },
-    { name:'Prisma Segienam', emoji:'🔶', glb:'/gametech2/../assets/model3D/prismasegi6.glb',
+    { name:'Prisma Segienam', emoji:'🔶', glb: BASE_URL + 'prismasegi6.glb',
       props:['8 sisi (2 segienam, 6 persegi)','18 rusuk','12 titik sudut'],
       desc:'Contoh: Mur baut, pensil segienam, sarang lebah.' },
   ];

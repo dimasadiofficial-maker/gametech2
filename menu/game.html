@@ -14,7 +14,7 @@
       overflow:hidden; width:100vw; height:100vh;
       background:
         linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,0,0,.7) 100%),
-        url('../assets/picture/imagejalan.jpg') center 55% / cover no-repeat;
+        url('https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/picture/imagejalan.jpg') center 55% / cover no-repeat;
     }
     canvas#three-canvas { position:fixed; top:0; left:0; z-index:5; }
 
@@ -238,12 +238,12 @@
 </div>
 
 <!-- AUDIO -->
-<audio id="snd-bg"   loop><source src="../assets/sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg"></audio>
-<audio id="snd-car"  loop><source src="../assets/sound/suaramobil.mpeg"></audio>
-<audio id="snd-ok"      ><source src="../assets/sound/berhasil.mpeg"></audio>
-<audio id="snd-over"    ><source src="../assets/sound/gameover.mpeg"></audio>
-<audio id="snd-click"   ><source src="../assets/sound/klik.mpeg"></audio>
-<audio id="snd-reverse" ><source src="../assets/sound/klik.mpeg"></audio>
+<audio id="snd-bg"   loop><source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg"></audio>
+<audio id="snd-car"  loop><source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/suaramobil.mpeg"></audio>
+<audio id="snd-ok"      ><source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/berhasil.mpeg"></audio>
+<audio id="snd-over"    ><source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/gameover.mpeg"></audio>
+<audio id="snd-click"   ><source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/klik.mpeg"></audio>
+<audio id="snd-reverse" ><source src="https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Sound/klik.mpeg"></audio>
 
 <script type="importmap">
 {"imports":{
@@ -290,15 +290,16 @@ function onLoad(name){
 }
 
 /* ══════ SHAPES ══════ */
+const BASE_URL = 'https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Model3D/';
 const SHAPES=[
-  {name:"kubus",   label:"Kubus",   glb:"../assets/model3D/kubus.glb"},
-  {name:"balok",   label:"Balok",   glb:"../assets/model3D/balok.glb"},
-  {name:"bola",    label:"Bola",    glb:"../assets/model3D/bola.glb"},
-  {name:"kerucut", label:"Kerucut", glb:"../assets/model3D/kerucut.glb"},
-  {name:"tabung",  label:"Tabung",  glb:"../assets/model3D/tabung.glb"},
-  {name:"limassegi4", label:"Limas Segiempat", glb:"../assets/model3D/limassegi4.glb"},
-  {name:"prisma",  label:"Prisma",  glb:"../assets/model3D/prisma.glb"},
-  {name:"prismasegi6", label:"Prisma Segienam", glb:"../assets/model3D/prismasegi6.glb"},
+  {name:"kubus",   label:"Kubus",   glb: BASE_URL + "kubus.glb"},
+  {name:"balok",   label:"Balok",   glb: BASE_URL + "balok.glb"},
+  {name:"bola",    label:"Bola",    glb: BASE_URL + "bola.glb"},
+  {name:"kerucut", label:"Kerucut", glb: BASE_URL + "kerucut.glb"},
+  {name:"tabung",  label:"Tabung",  glb: BASE_URL + "tabung.glb"},
+  {name:"limassegi4", label:"Limas Segiempat", glb: BASE_URL + "limassegi4.glb"},
+  {name:"prisma",  label:"Prisma",  glb: BASE_URL + "prisma.glb"},
+  {name:"prismasegi6", label:"Prisma Segienam", glb: BASE_URL + "prismasegi6.glb"},
 ];
 
 /* ══════ BUILD TRAY WITH MODEL-VIEWER ══════ */
@@ -488,7 +489,7 @@ function normalise(m,size=3){
   if(len>0) m.scale.setScalar(size/len);
 }
 
-loader.load("../assets/model3D/mobil.glb", gltf=>{
+loader.load("https://kiwdbiuacaupyggcougs.supabase.co/storage/v1/object/public/asset/Model3D/mobil.glb", gltf=>{
   car=gltf.scene; normalise(car,5);
   car.position.set(-28,1.0,-1);
   car.rotation.y=Math.PI;
@@ -506,7 +507,7 @@ function spawnHole(shapeName){
   if(holeObj){  scene.remove(holeObj);  holeObj=null; }
   if(holeGlow){ scene.remove(holeGlow); holeGlow=null; }
 
-  loader.load(`../assets/model3D/${shapeName}.glb`, gltf=>{
+  loader.load(BASE_URL + shapeName + '.glb', gltf=>{
     holeObj=gltf.scene; normalise(holeObj,3.2);
     holeObj.traverse(c=>{
       if(!c.isMesh)return;

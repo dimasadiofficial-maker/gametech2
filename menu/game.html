@@ -1,363 +1,633 @@
 <!doctype html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Game Tambal Lubang - Mobil Jalan</title>
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Game Tambal Lubang</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <script type="module" src="https://unpkg.com/@google/model-viewer@3.3.0/dist/model-viewer.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      font-family:'Outfit',system-ui,sans-serif;
+      overflow:hidden; width:100vw; height:100vh;
+      background:
+        linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,0,0,.7) 100%),
+        url('../assets/picture/imagejalan.jpg') center 55% / cover no-repeat;
+    }
+    canvas#three-canvas { position:fixed; top:0; left:0; z-index:5; }
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="manifest" href="../manifest.json">
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        background: #0f172a;
-        font-family: "Outfit", system-ui, sans-serif;
-      }
-      canvas {
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: 1;
-      }
-      .ui-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        pointer-events: none;
-        z-index: 10;
-      }
-      #gameover {
-        pointer-events: auto;
-      }
-    </style>
-  </head>
-  <body class="h-screen text-white">
-    <div class="ui-overlay flex flex-col">
-      <div class="flex justify-between items-center px-6 py-4 bg-black/50 backdrop-blur-md z-20">
-        <a href="../index.html" class="text-lg font-medium hover:text-blue-400">← MENU</a>
-        <div class="text-2xl font-bold">
-          SKOR: <span id="score" class="text-yellow-400">0</span>
-        </div>
-      </div>
-      <div class="flex-1 flex items-center justify-center">
-        <div class="bg-black/70 backdrop-blur-md px-8 py-3 rounded-3xl text-3xl font-bold text-center">
-          Target: <span id="shape-name" class="text-blue-400">BALOK</span>
-        </div>
-      </div>
+    /* HUD */
+    #hud {
+      position:fixed; top:0; left:0; right:0; z-index:30;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 24px;
+      background:linear-gradient(180deg,rgba(0,0,0,.7) 0%,transparent 100%);
+      pointer-events:none;
+    }
+    #hud a { pointer-events:auto; }
 
-      <div id="gameover" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-50">
-        <div class="text-center">
-          <h1 class="text-6xl font-black text-red-500 mb-6">GAME OVER</h1>
-          <p class="text-3xl mb-8">
-            Skor Akhir: <span id="final-score" class="text-yellow-400 font-bold">0</span>
-          </p>
-          <div class="flex gap-4 justify-center">
-            <button onclick="location.reload()" class="bg-gradient-to-r from-emerald-500 to-teal-600 px-10 py-4 rounded-2xl font-semibold text-lg">
-              🔄 Main Lagi
-            </button>
-            <a href="../index.html" class="bg-white/10 hover:bg-white/20 px-10 py-4 rounded-2xl font-semibold text-lg">
-              ← Kembali ke Menu
-            </a>
-          </div>
-        </div>
-      </div>
+    /* Target badge */
+    #target-badge {
+      position:fixed; top:68px; left:50%; transform:translateX(-50%);
+      z-index:30; pointer-events:none;
+      background:rgba(0,0,0,.75); backdrop-filter:blur(14px);
+      border:1.5px solid rgba(255,255,255,.18);
+      padding:10px 32px; border-radius:50px;
+      font-size:20px; font-weight:800; color:white; white-space:nowrap;
+      box-shadow:0 8px 32px rgba(0,0,0,.5);
+    }
+    #target-badge span { color:#38bdf8; }
+
+    /* Warning */
+    #warn-ring {
+      position:fixed; inset:0; z-index:20; pointer-events:none;
+      border:5px solid transparent; transition:border-color .05s;
+    }
+    #warn-ring.on { border-color:#ef4444; }
+
+    /* Toast */
+    #toast {
+      position:fixed; top:130px; left:50%; transform:translateX(-50%);
+      z-index:50; font-size:20px; font-weight:900;
+      padding:8px 26px; border-radius:50px;
+      white-space:nowrap; pointer-events:none;
+      opacity:0; transition:opacity .15s;
+    }
+    #toast.show { opacity:1; }
+    #toast.ok  { background:rgba(34,197,94,.92); color:white; }
+    #toast.bad { background:rgba(239,68,68,.92);  color:white; }
+
+    /* ── Drop zone highlight (saat drag di atas jalan) ── */
+    #drop-zone {
+      position:fixed; left:0; right:0; z-index:8;
+      pointer-events:none; opacity:0; transition:opacity .2s;
+      border-top:3px dashed rgba(56,189,248,.7);
+      border-bottom:3px dashed rgba(56,189,248,.7);
+    }
+    #drop-zone.active { opacity:1; }
+
+    /* ── Shape Tray ── */
+    #tray-wrap {
+      position:fixed; bottom:0; left:0; right:0; z-index:30;
+      padding:10px 16px 16px;
+      background:linear-gradient(0deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.55) 65%,transparent 100%);
+      display:flex; flex-direction:column; align-items:center; gap:6px;
+      user-select:none;
+    }
+    #tray-label {
+      font-size:11px; font-weight:700; letter-spacing:2px;
+      color:rgba(255,255,255,.4); text-transform:uppercase;
+    }
+    #tray-shapes { display:flex; gap:10px; align-items:flex-end; }
+
+    .shape-slot {
+      width:82px; position:relative; cursor:grab;
+      transition:transform .2s, opacity .2s;
+    }
+    .shape-slot:active { cursor:grabbing; }
+    .shape-slot.dragging { opacity:.35; transform:scale(.9); }
+    .shape-slot.correct  { outline:3px solid #22c55e; border-radius:14px; }
+    .shape-slot.wrong    { outline:3px solid #ef4444; border-radius:14px;
+                           animation:shake .3s; }
+    @keyframes shake {
+      0%,100%{ transform:translateX(0); }
+      25%{ transform:translateX(-5px); }
+      75%{ transform:translateX(5px); }
+    }
+
+    /* model-viewer inside slot — pointer-events:none agar drag kita yang handle */
+    .slot-mv {
+      width:82px; height:82px; display:block;
+      --poster-color:transparent; background:transparent;
+      pointer-events:none;   /* ← kunci agar drag overlay bisa capture */
+      border-radius:12px;
+      border:2px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.05);
+    }
+    .slot-name {
+      text-align:center; font-size:10px; font-weight:800;
+      color:rgba(255,255,255,.75); margin-top:3px;
+    }
+    /* Overlay transparan di atas mv untuk capture pointer */
+    .slot-overlay {
+      position:absolute; inset:0 0 18px 0;
+      z-index:2; cursor:grab; border-radius:12px;
+    }
+    .slot-overlay:active { cursor:grabbing; }
+
+    /* ── DRAG GHOST (mengikuti kursor) ── */
+    #drag-ghost {
+      position:fixed; z-index:100;
+      width:90px; height:90px;
+      pointer-events:none; display:none;
+      transform:translate(-50%,-55%);
+      filter:drop-shadow(0 0 18px rgba(56,189,248,.6));
+    }
+    #drag-ghost model-viewer {
+      width:90px; height:90px;
+      --poster-color:transparent; background:transparent;
+      pointer-events:none;
+      border-radius:14px;
+      border:2.5px solid #38bdf8;
+      background:rgba(0,10,30,.4);
+    }
+
+    /* Loading */
+    #loading {
+      position:fixed; inset:0; z-index:100;
+      background:#0f172a;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:18px; color:white;
+    }
+    .ld-logo { font-size:52px; font-weight:900; }
+    .ld-logo span { color:#38bdf8; }
+    .ld-sub  { font-size:13px; color:rgba(255,255,255,.45); margin-top:-10px; }
+    .ld-bar  { width:280px; height:6px; background:rgba(255,255,255,.1); border-radius:50px; overflow:hidden; }
+    .ld-fill { height:100%; width:0%; background:linear-gradient(90deg,#3b82f6,#8b5cf6,#38bdf8); border-radius:50px; transition:width .25s; }
+    .ld-txt  { font-size:12px; color:rgba(255,255,255,.35); }
+
+    /* Game Over */
+    #gameover {
+      position:fixed; inset:0; z-index:60;
+      background:rgba(0,0,0,.88); backdrop-filter:blur(10px);
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity .4s;
+    }
+    #gameover.show { opacity:1; pointer-events:auto; }
+    .go-card {
+      text-align:center; padding:44px 52px;
+      background:rgba(10,15,30,.95);
+      border:1.5px solid rgba(255,255,255,.12); border-radius:28px;
+      box-shadow:0 32px 80px rgba(0,0,0,.6);
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="ld-logo">GEO<span>AR</span></div>
+  <div class="ld-sub">Memuat aset game...</div>
+  <div class="ld-bar"><div class="ld-fill" id="ld-bar"></div></div>
+  <div class="ld-txt"  id="ld-txt">Menyiapkan...</div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <a href="../index.html"
+     style="background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);
+            color:white;text-decoration:none;font-size:13px;font-weight:700;
+            padding:9px 18px;border-radius:12px;backdrop-filter:blur(8px);">
+    ← MENU
+  </a>
+  <div style="font-size:22px;font-weight:900;color:white;
+              background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+              padding:8px 22px;border-radius:50px;border:1px solid rgba(255,255,255,.15);">
+    SKOR: <span id="score" style="color:#fbbf24;">0</span>
+  </div>
+</div>
+
+<!-- TARGET -->
+<div id="target-badge">Seret: <span id="shape-name">–</span></div>
+
+<!-- WARN -->
+<div id="warn-ring"></div>
+
+<!-- DROP ZONE (visual guide) -->
+<div id="drop-zone"></div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- DRAG GHOST -->
+<div id="drag-ghost">
+  <model-viewer id="ghost-mv" auto-rotate rotation-per-second="30deg"
+    camera-orbit="30deg 70deg auto"
+    shadow-intensity="0" exposure="1.3">
+  </model-viewer>
+</div>
+
+<!-- TRAY -->
+<div id="tray-wrap">
+  <div id="tray-label">🖐 Seret bangun ruang ke atas lubang hitam untuk menambalnya</div>
+  <div id="tray-shapes"></div>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameover">
+  <div class="go-card">
+    <div style="font-size:60px;margin-bottom:8px;">💥</div>
+    <h1 style="font-size:44px;font-weight:900;color:#ef4444;margin:0 0 6px;">GAME OVER</h1>
+    <p style="color:rgba(255,255,255,.5);font-size:14px;margin-bottom:16px;">Mobil menabrak lubang!</p>
+    <p style="font-size:30px;font-weight:800;color:white;margin-bottom:28px;">
+      Skor Akhir: <span id="final-score" style="color:#fbbf24;">0</span>
+    </p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <button onclick="location.reload()"
+        style="background:linear-gradient(135deg,#22c55e,#15803d);color:white;border:none;
+               padding:14px 30px;border-radius:14px;font-size:16px;font-weight:800;
+               cursor:pointer;font-family:Outfit,sans-serif;">🔄 Main Lagi</button>
+      <a href="../index.html"
+        style="background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);
+               color:white;text-decoration:none;padding:14px 30px;border-radius:14px;
+               font-size:16px;font-weight:800;display:inline-flex;align-items:center;">← Menu</a>
     </div>
+  </div>
+</div>
 
-    <!-- Audio elements -->
-    <!-- Suara mobil (volume tinggi) -->
-    <audio id="car-sound" loop preload="auto">
-      <source src="../assets/sound/suaramobil.mpeg" type="audio/mpeg">
-    </audio>
-    <!-- Efek suara (volume sedang) -->
-    <audio id="success-sound" preload="auto">
-      <source src="../assets/sound/berhasil.mpeg" type="audio/mpeg">
-    </audio>
-    <audio id="gameover-sound" preload="auto">
-      <source src="../assets/sound/gameover.mpeg" type="audio/mpeg">
-    </audio>
-    <audio id="click-sound" preload="auto">
-      <source src="../assets/sound/klik.mpeg" type="audio/mpeg">
-    </audio>
+<!-- AUDIO -->
+<audio id="snd-bg"   loop><source src="../assets/sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg"></audio>
+<audio id="snd-car"  loop><source src="../assets/sound/suaramobil.mpeg"></audio>
+<audio id="snd-ok"      ><source src="../assets/sound/berhasil.mpeg"></audio>
+<audio id="snd-over"    ><source src="../assets/sound/gameover.mpeg"></audio>
+<audio id="snd-click"   ><source src="../assets/sound/klik.mpeg"></audio>
+<audio id="snd-reverse" ><source src="../assets/sound/klik.mpeg"></audio>
 
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
-          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
-        }
-      }
-    </script>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
+}}</script>
 
-    <script type="module">
-      import * as THREE from "three";
-      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-      // ========== AUDIO MANAGEMENT ==========
-      const carAudio = document.getElementById("car-sound");
-      const successAudio = document.getElementById("success-sound");
-      const gameoverAudio = document.getElementById("gameover-sound");
-      const clickAudio = document.getElementById("click-sound");
+/* ══════ AUDIO ══════ */
+const sndBg =document.getElementById("snd-bg"),
+      sndCar=document.getElementById("snd-car"),  sndOk=document.getElementById("snd-ok"),
+      sndOv =document.getElementById("snd-over"), sndCk=document.getElementById("snd-click");
+sndBg.volume=.35; sndCar.volume=.55; sndOk.volume=.6; sndOv.volume=.7; sndCk.volume=.4;
+let audioOn=false;
+const unlock=()=>{
+  if(audioOn)return; audioOn=true;
+  [sndBg,sndCar,sndOk,sndOv,sndCk].forEach(a=>a.play().then(()=>{a.pause();a.currentTime=0;}).catch(()=>{}));
+  sndBg.play().catch(()=>{});   /* ← background music mulai */
+  sndCar.play().catch(()=>{});  /* ← suara mesin mobil mulai */
+  document.removeEventListener("pointerdown",unlock);
+};
+document.addEventListener("pointerdown",unlock);
+const playOk  =()=>{if(!audioOn)return;sndOk.currentTime=0; sndOk.play().catch(()=>{});};
+const playOver=()=>{
+  if(!audioOn)return;
+  sndOv.currentTime=0; sndOv.play().catch(()=>{});
+  sndCar.pause();
+  sndBg.pause();   /* ← stop semua sound saat game over */
+};
+const playClk =()=>{if(!audioOn)return;sndCk.currentTime=0; sndCk.play().catch(()=>{});};
 
-      // Atur volume: suara mobil lebih keras
-      carAudio.volume = 0.9;      // tinggi
-      successAudio.volume = 0.5;
-      gameoverAudio.volume = 0.6;
-      clickAudio.volume = 0.4;
+/* ══════ LOADING ══════ */
+const ldBar=document.getElementById("ld-bar"), ldTxt=document.getElementById("ld-txt");
+let loaded=0;
+function onLoad(name){
+  loaded++;
+  const p=Math.round((loaded/2)*100);
+  ldBar.style.width=Math.min(p,100)+"%";
+  ldTxt.textContent=`Memuat: ${name}`;
+  if(loaded>=2) setTimeout(()=>{document.getElementById("loading").style.display="none";},500);
+}
 
-      let audioEnabled = false;
+/* ══════ SHAPES ══════ */
+const SHAPES=[
+  {name:"kubus",   label:"Kubus",   glb:"../assets/model3D/kubus.glb"},
+  {name:"balok",   label:"Balok",   glb:"../assets/model3D/balok.glb"},
+  {name:"bola",    label:"Bola",    glb:"../assets/model3D/bola.glb"},
+  {name:"kerucut", label:"Kerucut", glb:"../assets/model3D/kerucut.glb"},
+  {name:"tabung",  label:"Tabung",  glb:"../assets/model3D/tabung.glb"},
+  {name:"limassegi4", label:"Limas Segiempat", glb:"../assets/model3D/limassegi4.glb"},
+  {name:"prisma",  label:"Prisma",  glb:"../assets/model3D/prisma.glb"},
+  {name:"prismasegi6", label:"Prisma Segienam", glb:"../assets/model3D/prismasegi6.glb"},
+];
 
-      function enableAudio() {
-        if (audioEnabled) return;
-        // Inisialisasi semua audio (play lalu pause) untuk membuka izin browser
-        const initAudio = (audio) => {
-          audio.play().then(() => {
-            audio.pause();
-            audio.currentTime = 0;
-          }).catch(e => console.log("init audio error", e));
-        };
-        initAudio(carAudio);
-        initAudio(successAudio);
-        initAudio(gameoverAudio);
-        initAudio(clickAudio);
-        audioEnabled = true;
-        // Mulai suara mobil looping
-        carAudio.loop = true;
-        carAudio.play().catch(e => console.log("car audio play error", e));
-      }
+/* ══════ BUILD TRAY WITH MODEL-VIEWER ══════ */
+const trayEl    = document.getElementById("tray-shapes");
+const ghostEl   = document.getElementById("drag-ghost");
+const ghostMv   = document.getElementById("ghost-mv");
+const dropZone  = document.getElementById("drop-zone");
 
-      // Aktifkan audio setelah user klik pertama
-      const enableOnce = () => {
-        enableAudio();
-        document.removeEventListener("click", enableOnce);
-        document.removeEventListener("touchstart", enableOnce);
-      };
-      document.addEventListener("click", enableOnce);
-      document.addEventListener("touchstart", enableOnce);
+let dragShape   = "";      // shape sedang di-drag
+let dragSlotEl  = null;    // slot asal
+let isDragging  = false;
 
-      function playSuccess() {
-        if (!audioEnabled) return;
-        successAudio.currentTime = 0;
-        successAudio.play().catch(e => console.log("success error"));
-      }
+SHAPES.forEach(s => {
+  const slot = document.createElement("div");
+  slot.className = "shape-slot";
+  slot.id = `slot-${s.name}`;
 
-      function playGameOver() {
-        if (!audioEnabled) return;
-        gameoverAudio.currentTime = 0;
-        gameoverAudio.play().catch(e => console.log("gameover error"));
-        // Hentikan suara mobil saat game over
-        carAudio.pause();
-        carAudio.currentTime = 0;
-      }
+  // model-viewer: camera-orbit zoom out agar model muat semua
+  const mv = document.createElement("model-viewer");
+  mv.setAttribute("src", s.glb);
+  mv.setAttribute("auto-rotate","");
+  mv.setAttribute("rotation-per-second","18deg");
+  mv.setAttribute("camera-orbit","30deg 70deg auto");   /* ← auto radius = fit penuh */
+  mv.setAttribute("field-of-view","35deg");              /* ← FOV kecil = model terlihat lebih kecil & penuh */
+  mv.setAttribute("shadow-intensity","0");
+  mv.setAttribute("exposure","1.2");
+  mv.className = "slot-mv";
 
-      function playClick() {
-        if (!audioEnabled) return;
-        clickAudio.currentTime = 0;
-        clickAudio.play().catch(e => console.log("click error"));
-      }
+  const name = document.createElement("div");
+  name.className = "slot-name";
+  name.textContent = s.label;
 
-      // ========== THREE.JS SETUP ==========
-      const loader = new GLTFLoader();
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
+  // Overlay transparan — menangkap drag
+  const overlay = document.createElement("div");
+  overlay.className = "slot-overlay";
 
-      let car = null;
-      let hole = null;
-      let draggableObjects = [];
-      let selectedObject = null;
-      let score = 0;
-      let currentTarget = "";
-      let isGameOver = false;
+  overlay.addEventListener("pointerdown", e => {
+    if(isGameOver) return;
+    e.preventDefault(); e.stopPropagation();
+    playClk();
+    startDrag(s, slot, e.clientX, e.clientY);
+  });
 
-      const scoreEl = document.getElementById("score");
-      const shapeNameEl = document.getElementById("shape-name");
-      const gameoverEl = document.getElementById("gameover");
-      const finalScoreEl = document.getElementById("final-score");
+  slot.appendChild(mv);
+  slot.appendChild(name);
+  slot.appendChild(overlay);
+  trayEl.appendChild(slot);
+});
 
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x1e293b);
+/* ── Posisi drop zone (area jalan) ── */
+function updateDropZone(){
+  const trayTop = document.getElementById("tray-wrap").getBoundingClientRect().top;
+  const roadH   = innerHeight * 0.2;       // estimasi ketebalan jalan di layar
+  const roadMid = innerHeight * 0.5;       // estimasi tengah jalan
+  dropZone.style.top    = (roadMid - roadH/2)+"px";
+  dropZone.style.height = roadH+"px";
+}
+updateDropZone();
+window.addEventListener("resize", updateDropZone);
 
-      const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-      camera.position.set(0, 5, 12);
+/* ── Start drag ── */
+function startDrag(shape, slotEl, cx, cy){
+  dragShape  = shape.name;
+  dragSlotEl = slotEl;
+  isDragging = true;
 
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.body.appendChild(renderer.domElement);
+  slotEl.classList.add("dragging");
 
-      // Lighting
-      scene.add(new THREE.AmbientLight(0xffffff, 1.4));
-      const dirLight = new THREE.DirectionalLight(0xffffff, 2);
-      dirLight.position.set(5, 10, 8);
-      scene.add(dirLight);
-      const fillLight = new THREE.PointLight(0x88aaff, 0.5);
-      fillLight.position.set(2, 3, 4);
-      scene.add(fillLight);
+  // Set ghost model-viewer ke GLB yang sesuai
+  ghostMv.setAttribute("src", shape.glb);
+  ghostEl.style.display = "block";
+  ghostEl.style.left    = cx+"px";
+  ghostEl.style.top     = cy+"px";
+}
 
-      // Background Jalan
-      let roadTexture;
-      const bgLoader = new THREE.TextureLoader();
-      bgLoader.load("assets/picture/imagejalan.jpg", (texture) => {
-        roadTexture = texture;
-        roadTexture.wrapS = THREE.RepeatWrapping;
-        roadTexture.wrapT = THREE.RepeatWrapping;
-        roadTexture.repeat.set(4, 1);
-        scene.background = roadTexture;
-      });
+/* ── Move drag ── */
+document.addEventListener("pointermove", e=>{
+  if(!isDragging) return;
+  ghostEl.style.left = e.clientX+"px";
+  ghostEl.style.top  = e.clientY+"px";
 
-      function normalizeModel(model) {
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3()).length();
-        const center = box.getCenter(new THREE.Vector3());
-        model.position.sub(center);
-        if (size > 0) model.scale.setScalar(2.0 / size);
-      }
+  // Highlight drop zone saat ghost di atas area jalan
+  const trayTop = document.getElementById("tray-wrap").getBoundingClientRect().top;
+  const overRoad = e.clientY < trayTop * 0.95;
+  dropZone.classList.toggle("active", overRoad);
+});
 
-      // Load mobil
-      loader.load("assets/model3D/mobil.glb", (gltf) => {
-        car = gltf.scene;
-        normalizeModel(car);
-        car.scale.multiplyScalar(2);
-        car.position.set(-15.3, 1.0, -3);
-        car.rotation.y = Math.PI / -0.2;
-        scene.add(car);
-      });
+/* ── End drag (release) ── */
+document.addEventListener("pointerup", e=>{
+  if(!isDragging) return;
+  isDragging = false;
 
-      const shapes = [
-        { name: "balok", file: "assets/model3D/balok.glb" },
-        { name: "bola", file: "assets/model3D/bola.glb" },
-        { name: "kerucut", file: "assets/model3D/kerucut.glb" },
-        { name: "tabung", file: "assets/model3D/tabung.glb" },
-        { name: "prisma", file: "assets/model3D/prisma.glb" }
-      ];
+  ghostEl.style.display = "none";
+  dropZone.classList.remove("active");
+  if(dragSlotEl) dragSlotEl.classList.remove("dragging");
 
-      shapes.forEach((shape, index) => {
-        loader.load(shape.file, (gltf) => {
-          const obj = gltf.scene;
-          normalizeModel(obj);
-          obj.position.set(-3 + index * 2, 0.6, 1);
-          obj.userData.shape = shape.name;
-          obj.userData.originalPos = obj.position.clone();
-          scene.add(obj);
-          draggableObjects.push(obj);
-        });
-      });
+  const trayTop = document.getElementById("tray-wrap").getBoundingClientRect().top;
+  const droppedOnRoad = e.clientY < trayTop * 0.95;
 
-      function createHole(targetShape) {
-        if (hole) scene.remove(hole);
-        const shapeData = shapes.find(s => s.name === targetShape);
-        if (!shapeData) return;
-        loader.load(shapeData.file, (gltf) => {
-          hole = gltf.scene;
-          normalizeModel(hole);
-          hole.scale.setScalar(0.9);
-          hole.traverse(child => {
-            if (child.isMesh) {
-              child.material = child.material.clone();
-              child.material.color.set(0x222222);
-              child.material.transparent = true;
-              child.material.opacity = 0.7;
-            }
-          });
-          hole.position.set(15, 0.8, -4);
-          scene.add(hole);
-        });
-      }
+  if(droppedOnRoad && holeObj && !isGameOver){
+    submitAnswer(dragShape);
+  }
 
-      function nextTarget() {
-        const randomIndex = Math.floor(Math.random() * shapes.length);
-        currentTarget = shapes[randomIndex].name;
-        shapeNameEl.textContent = currentTarget.toUpperCase();
-        createHole(currentTarget);
-      }
+  dragShape  = "";
+  dragSlotEl = null;
+});
 
-      nextTarget();
+/* ── Submit answer ── */
+function submitAnswer(shape){
+  const correct = shape === currentTarget;
+  const slotEl  = document.getElementById(`slot-${shape}`);
 
-      // Drag & Drop
-      window.addEventListener("pointerdown", (e) => {
-        if (isGameOver) return;
-        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(draggableObjects, true);
-        if (intersects.length > 0) {
-          selectedObject = intersects[0].object.parent || intersects[0].object;
-          playClick();
-        }
-      });
+  if(slotEl){
+    slotEl.classList.add(correct ? "correct" : "wrong");
+    setTimeout(()=> slotEl.classList.remove("correct","wrong"), 500);
+  }
 
-      window.addEventListener("pointermove", (e) => {
-        if (!selectedObject || isGameOver) return;
-        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(mouse, camera);
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.8);
-        const point = new THREE.Vector3();
-        raycaster.ray.intersectPlane(plane, point);
-        if (point) {
-          selectedObject.position.x = point.x;
-          selectedObject.position.z = point.z;
-        }
-      });
+  if(correct){
+    score += 25;
+    scoreEl.textContent = score;
+    playOk();
+    showToast("✅ +25 Benar!", "ok");
+    carReverse = true;   /* ← mobil mundur beberapa langkah */
+    if(holeObj){  scene.remove(holeObj);  holeObj=null; }
+    if(holeGlow){ scene.remove(holeGlow); holeGlow=null; }
+    setTimeout(nextRound, 700);
+  } else {
+    score = Math.max(0,score-10);
+    scoreEl.textContent = score;
+    showToast("❌ Salah! −10","bad");
+  }
+}
 
-      window.addEventListener("pointerup", () => {
-        if (!selectedObject || isGameOver || !hole) {
-          selectedObject = null;
-          return;
-        }
-        const distanceToHole = selectedObject.position.distanceTo(hole.position);
-        if (distanceToHole < 4.5 && selectedObject.userData.shape === currentTarget) {
-          score += 25;
-          scoreEl.textContent = Math.floor(score);
-          playSuccess();
-          if (car) car.position.x += 2.5;
-          selectedObject.position.copy(selectedObject.userData.originalPos);
-          nextTarget();
-        } else if (distanceToHole < 4.5) {
-          isGameOver = true;
-          playGameOver();
-          finalScoreEl.textContent = Math.floor(score);
-          gameoverEl.classList.remove("hidden");
-        } else {
-          selectedObject.position.copy(selectedObject.userData.originalPos);
-        }
-        selectedObject = null;
-      });
+/* ══════ THREE.JS ══════ */
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0x000000, 0);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.domElement.id="three-canvas";
+document.body.appendChild(renderer.domElement);
 
-      // Animasi
-      let roadOffset = 0;
-      let holeMoveSpeed = 0.005;
-      let carSpeed = 0.015;
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,200);
+camera.position.set(0,4,20);
+camera.lookAt(0,1.5,0);
 
-      function animate() {
-        requestAnimationFrame(animate);
-        if (isGameOver) {
-          renderer.render(scene, camera);
-          return;
-        }
-        if (car) car.position.x += carSpeed;
-        if (hole) hole.position.x -= holeMoveSpeed;
-        if (roadTexture) {
-          roadOffset -= 0.002;
-          roadTexture.offset.set(roadOffset, 0);
-        }
-        // Game over jika mobil melewati lubang
-        if (hole && car && car.position.x > hole.position.x) {
-          isGameOver = true;
-          playGameOver();
-          finalScoreEl.textContent = Math.floor(score);
-          gameoverEl.classList.remove("hidden");
-        }
-        renderer.render(scene, camera);
-      }
-      animate();
+scene.add(new THREE.AmbientLight(0xffffff,1.8));
+const sun=new THREE.DirectionalLight(0xfff8e1,2.8);
+sun.position.set(6,16,10); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-20; sun.shadow.camera.right=20;
+sun.shadow.camera.top=10;   sun.shadow.camera.bottom=-10;
+sun.shadow.bias=-0.0005;
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xb3d9ff,0x88cc44,0.5));
 
-      window.addEventListener("resize", () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-    </script>
-  </body>
+/* Road surface */
+const rdGeo=new THREE.PlaneGeometry(300,10);
+const rdMat=new THREE.MeshLambertMaterial({color:0x555566,transparent:true,opacity:0.5});
+const rdMesh=new THREE.Mesh(rdGeo,rdMat);
+rdMesh.rotation.x=-Math.PI/2; rdMesh.position.set(0,0.01,-1);
+rdMesh.receiveShadow=true; scene.add(rdMesh);
+
+/* Marka jalan */
+const mkMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.7});
+for(let x=-150;x<150;x+=9){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(5,0.01,0.25),mkMat);
+  m.position.set(x,0.02,-1); scene.add(m);
+}
+[4.4,-4.4].forEach(z=>{
+  const e=new THREE.Mesh(new THREE.BoxGeometry(300,0.01,0.2),
+    new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.5}));
+  e.position.set(0,0.02,z-1); scene.add(e);
+});
+
+/* ══════ LOAD MOBIL ══════ */
+const loader=new GLTFLoader();
+let car=null;
+
+function normalise(m,size=3){
+  const box=new THREE.Box3().setFromObject(m);
+  const len=box.getSize(new THREE.Vector3()).length();
+  const ctr=box.getCenter(new THREE.Vector3());
+  m.position.sub(ctr);
+  if(len>0) m.scale.setScalar(size/len);
+}
+
+loader.load("../assets/model3D/mobil.glb", gltf=>{
+  car=gltf.scene; normalise(car,5);
+  car.position.set(-28,1.0,-1);
+  car.rotation.y=Math.PI;
+  car.castShadow=true;
+  scene.add(car);
+  onLoad("Mobil");
+}, undefined, ()=>onLoad("Mobil"));
+
+onLoad("Road");
+
+/* ══════ HOLE ══════ */
+let holeObj=null, holeGlow=null;
+
+function spawnHole(shapeName){
+  if(holeObj){  scene.remove(holeObj);  holeObj=null; }
+  if(holeGlow){ scene.remove(holeGlow); holeGlow=null; }
+
+  loader.load(`../assets/model3D/${shapeName}.glb`, gltf=>{
+    holeObj=gltf.scene; normalise(holeObj,3.2);
+    holeObj.traverse(c=>{
+      if(!c.isMesh)return;
+      c.material=c.material.clone();
+      c.material.color.set(0x060610);
+      c.material.emissive=new THREE.Color(0x550011);
+      c.material.emissiveIntensity=0.9;
+      c.material.roughness=1;
+      c.castShadow=true;
+    });
+    holeObj.position.set(32,1.1,-1);
+    scene.add(holeObj);
+
+    const rg=new THREE.RingGeometry(2.2,3.0,48);
+    const rm=new THREE.MeshBasicMaterial({color:0xff2233,side:THREE.DoubleSide,transparent:true,opacity:0.55});
+    holeGlow=new THREE.Mesh(rg,rm);
+    holeGlow.rotation.x=-Math.PI/2;
+    holeGlow.position.set(32,0.05,-1);
+    scene.add(holeGlow);
+  });
+}
+
+/* ══════ GAME STATE ══════ */
+let score=0, isGameOver=false, currentTarget="", warnTimer=0;
+const scoreEl=document.getElementById("score"),
+      nameEl =document.getElementById("shape-name"),
+      goEl   =document.getElementById("gameover"),
+      finalEl=document.getElementById("final-score"),
+      toastEl=document.getElementById("toast"),
+      warnEl =document.getElementById("warn-ring");
+
+function nextRound(){
+  const s=SHAPES[Math.floor(Math.random()*SHAPES.length)];
+  currentTarget=s.name;
+  nameEl.textContent=s.label.toUpperCase();
+  spawnHole(s.name);
+}
+
+function showToast(msg,type){
+  toastEl.textContent=msg;
+  toastEl.className=`show ${type}`;
+  clearTimeout(toastEl._t);
+  toastEl._t=setTimeout(()=>toastEl.className="",1300);
+}
+
+function triggerGameOver(){
+  if(isGameOver)return;
+  isGameOver=true; playOver();
+  finalEl.textContent=score;
+  goEl.classList.add("show");
+}
+
+/* ══════ ANIMATE ══════ */
+const SPD_NORMAL  =  0.02;
+const SPD_REVERSE = -0.08;   /* mundur — nilai negatif */
+const HOLE_SPD    =  0.025;
+const REVERSE_FRAMES = 45;   /* ~0.75 detik mundur */
+
+let carSpd=SPD_NORMAL, carReverse=false, reverseTimer=0, ringPulse=0;
+
+setTimeout(nextRound,600);
+
+function animate(){
+  requestAnimationFrame(animate);
+  if(isGameOver){ renderer.render(scene,camera); return; }
+
+  /* ── Mundur saat jawaban benar ── */
+  if(carReverse){
+    carSpd = SPD_REVERSE;
+    reverseTimer++;
+    /* Tilt ke belakang saat mundur */
+    if(car) car.rotation.z = -0.15 * Math.sin((reverseTimer/REVERSE_FRAMES)*Math.PI);
+    if(reverseTimer >= REVERSE_FRAMES){
+      carReverse=false; carSpd=SPD_NORMAL; reverseTimer=0;
+      if(car) car.rotation.z=0;
+    }
+  }
+
+  if(car){
+    car.position.x+=carSpd;
+    if(car.position.x>30) car.position.x=-28;
+  }
+
+  if(holeObj){
+    holeObj.position.x-=HOLE_SPD;
+    holeObj.rotation.y+=0.022;
+    if(holeGlow) holeGlow.position.x=holeObj.position.x;
+
+    ringPulse+=0.06;
+    if(holeGlow) holeGlow.material.opacity=0.35+0.35*Math.sin(ringPulse);
+
+    if(holeObj.position.x<-32){
+      scene.remove(holeObj); holeObj=null;
+      scene.remove(holeGlow); holeGlow=null;
+      score=Math.max(0,score-5); scoreEl.textContent=score;
+      showToast("⚠️ Terlewat! −5","bad");
+      setTimeout(nextRound,400);
+    }
+
+    if(car){
+      const dx=Math.abs(car.position.x-holeObj.position.x);
+      const dz=Math.abs(car.position.z-holeObj.position.z);
+      if(dx<14&&dz<5){
+        warnTimer++;
+        const freq=dx<4?3:dx<8?7:14;
+        warnEl.className=(Math.floor(warnTimer/freq)%2===0)?"on":"";
+      } else { warnEl.className=""; warnTimer=0; }
+      if(dx<2.8&&dz<3.5) triggerGameOver();
+    }
+  }
+
+  renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener("resize",()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  updateDropZone();
+});
+</script>
+</body>
 </html>

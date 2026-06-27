@@ -3,253 +3,515 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>AR Bangun Ruang - Belajar Geometri</title>
-  <!-- A-Frame & AR.js -->
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  <!-- Tailwind & Font -->
+  <title>AR Bangun Ruang - GeoAR</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="manifest" href="../manifest.json">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+  <!-- model-viewer untuk mode 3D Viewer (fallback & standalone) -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer@3.3.0/dist/model-viewer.min.js"></script> 
   <style>
-    body { font-family: 'Outfit', sans-serif; margin:0; overflow:hidden; }
-    .ui-overlay { position: absolute; top:0; left:0; width:100%; height:100%; z-index:20; pointer-events: none; }
-    .ui-overlay > * { pointer-events: auto; }
-    .glass-card {
-      background: rgba(255,255,255,0.15);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 1.5rem;
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+    html, body { width:100%; height:100%; overflow:hidden; font-family:'Outfit',sans-serif; background:#0b0f1e; }
+
+    /* ── Mode Tabs ── */
+    .tab-active { background: linear-gradient(135deg,#4f46e5,#38bdf8); color:white !important; }
+
+    /* ── AR Scene (A-Frame fullscreen) ── */
+    #ar-scene-wrap { position:fixed; inset:0; z-index:1; display:none; }
+    #ar-scene-wrap.visible { display:block; }
+    #ar-scene-wrap a-scene { width:100%; height:100%; }
+
+    /* ── 3D Viewer mode ── */
+    #viewer-wrap {
+      position:fixed; inset:0; z-index:2; display:none;
+      flex-direction:column;
+      background: linear-gradient(135deg,#0b0f1e 0%,#1a1040 100%);
     }
+    #viewer-wrap.visible { display:flex; }
+    model-viewer {
+      --poster-color: transparent;
+      background: transparent;
+      width:100%; flex:1;
+    }
+
+    /* ── Shared UI Overlay ── */
+    #ui-overlay {
+      position:fixed; inset:0; z-index:20;
+      pointer-events:none;
+      display:flex; flex-direction:column;
+      justify-content:space-between; padding:12px;
+    }
+    #ui-overlay > * { pointer-events:auto; }
+
+    /* shape buttons */
     .shape-btn {
-      transition: all 0.2s ease;
-      backdrop-filter: blur(4px);
+      background: rgba(0,0,0,.5); border:1.5px solid rgba(255,255,255,.2);
+      color:white; border-radius:50px; padding:7px 16px;
+      font-size:12px; font-weight:700; cursor:pointer;
+      white-space:nowrap; transition:all .2s;
+      backdrop-filter:blur(6px);
     }
+    .shape-btn:hover { border-color:#38bdf8; }
     .shape-btn.active {
-      background: #3b82f6 !important;
-      transform: scale(1.05);
-      box-shadow: 0 0 12px rgba(59,130,246,0.5);
+      background: linear-gradient(135deg,#4f46e5,#38bdf8);
+      border-color:transparent;
+      box-shadow: 0 0 14px rgba(56,189,248,.4);
     }
-    @keyframes pulse {
-      0%,100% { opacity: 1; }
-      50% { opacity: 0.6; }
+
+    /* status dot */
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .dot-blink { animation:blink 1.4s infinite; }
+    .dot-green  { background:#22c55e; }
+    .dot-red    { background:#ef4444; }
+    .dot-yellow { background:#fbbf24; }
+
+    /* info panel */
+    #info-panel {
+      background: rgba(0,0,0,.65); backdrop-filter:blur(16px);
+      border:1px solid rgba(255,255,255,.18); border-radius:20px;
+      padding:14px 18px; max-width:360px; margin:0 auto;
+      transition:opacity .3s;
     }
-    .status-pulse {
-      animation: pulse 1.5s infinite;
+    #info-panel.hidden { display:none; }
+
+    /* HTTPS notice card */
+    #https-notice {
+      position:fixed; inset:0; z-index:60;
+      background:rgba(0,0,0,.88); backdrop-filter:blur(12px);
+      display:flex; align-items:center; justify-content:center; padding:20px;
+    }
+    .notice-card {
+      background:rgba(15,20,40,.98); border:1.5px solid rgba(255,255,255,.12);
+      border-radius:24px; padding:28px 24px; max-width:440px; width:100%; color:white;
+      text-align:center;
+    }
+    .notice-card h2 { font-size:22px; font-weight:900; color:#fbbf24; margin:12px 0 8px; }
+    .notice-card p  { font-size:13px; color:rgba(255,255,255,.65); line-height:1.7; }
+    .code-box {
+      background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.15);
+      border-radius:10px; padding:10px 14px; margin:12px 0;
+      font-family:monospace; font-size:12px; color:#38bdf8;
+      text-align:left; white-space:pre-wrap; word-break:break-all;
+    }
+    .btn-viewer {
+      display:block; width:100%;
+      background:linear-gradient(135deg,#4f46e5,#38bdf8);
+      border:none; color:white; border-radius:14px;
+      padding:13px; font-size:15px; font-weight:800;
+      cursor:pointer; margin-top:12px; font-family:'Outfit',sans-serif;
+    }
+    .btn-viewer:hover { opacity:.9; }
+    .btn-close-notice {
+      background:rgba(255,255,255,.08); border:1.5px solid rgba(255,255,255,.15);
+      color:rgba(255,255,255,.6); border-radius:12px;
+      padding:10px; width:100%; font-size:13px; font-weight:700;
+      cursor:pointer; margin-top:8px; font-family:'Outfit',sans-serif;
+    }
+
+    /* gradient text */
+    .gtext { background:linear-gradient(90deg,#60a5fa,#a78bfa);
+              -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+
+    /* AR button inside model-viewer */
+    model-viewer::part(default-ar-button) {
+      background:linear-gradient(135deg,#fbbf24,#f59e0b);
+      color:#000; border-radius:14px; padding:10px 18px;
+      font-family:'Outfit',sans-serif; font-weight:800; font-size:13px;
+      border:none; bottom:12px; right:12px;
     }
   </style>
 </head>
 <body>
-  <!-- Overlay UI -->
-  <div class="ui-overlay flex flex-col justify-between p-4">
-    <!-- Header -->
-    <div class="flex justify-between items-center">
-      <a href="../index.html" class="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full text-white text-sm hover:bg-black/60 transition">
-        ← Menu
-      </a>
-      <div id="status" class="bg-black/50 backdrop-blur-md px-4 py-2 rounded-full text-white text-sm flex items-center gap-2">
-        <span class="w-2 h-2 bg-red-500 rounded-full status-pulse"></span>
-        <span>Mencari Marker Hiro...</span>
-      </div>
+
+<!-- ══════════════════════════════════════════════
+     HTTPS NOTICE (tampil otomatis jika HTTP + IP)
+══════════════════════════════════════════════ -->
+<div id="https-notice" style="display:none;">
+  <div class="notice-card">
+    <div style="font-size:48px;">📷</div>
+    <h2>Kamera Butuh HTTPS</h2>
+    <p>
+      Browser memblokir akses kamera di koneksi <strong style="color:#ef4444;">HTTP</strong>.
+      AR berbasis kamera hanya bekerja di <strong style="color:#22c55e;">HTTPS</strong> atau <strong style="color:#22c55e;">localhost</strong>.
+    </p>
+
+    <p style="margin-top:10px;font-weight:700;color:rgba(255,255,255,.8);">💡 Cara fix — jalankan dengan HTTPS:</p>
+    <div class="code-box"># Install sertifikat lokal (sekali saja)
+npx mkcert -install
+npx mkcert 192.168.56.1
+
+# Jalankan server dengan HTTPS
+npx http-server -S -C 192.168.56.1+1.pem -K 192.168.56.1+1-key.pem -p 8080</div>
+    <p style="color:rgba(255,255,255,.45);font-size:12px;">Atau akses dari komputer yang sama via <strong>http://localhost:8080</strong></p>
+
+    <button class="btn-viewer" onclick="closeNoticeUseViewer()">
+      🔮 Lanjut ke 3D Viewer (tanpa kamera)
+    </button>
+    <button class="btn-close-notice" onclick="closeNoticeUseAR()">
+      ⚠️ Coba AR Tetap (mungkin tidak berfungsi)
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     A-FRAME AR SCENE (hanya dimuat saat HTTPS)
+══════════════════════════════════════════════ -->
+<div id="ar-scene-wrap">
+  <!-- A-Frame diinject JS supaya tidak load saat HTTP -->
+</div>
+
+<!-- ══════════════════════════════════════════════
+     3D VIEWER MODE (model-viewer, tanpa kamera)
+══════════════════════════════════════════════ -->
+<div id="viewer-wrap">
+  <model-viewer id="main-mv"
+    src="../assets/model3D/balok.glb"
+    alt="Model 3D Bangun Ruang"
+    camera-controls
+    auto-rotate rotation-per-second="20deg"
+    shadow-intensity="1" exposure="1.1"
+    ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto">
+    <button slot="ar-button">
+      📱 Lihat di Dunia Nyata (AR)
+    </button>
+  </model-viewer>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SHARED UI OVERLAY (HUD, shape buttons, info)
+══════════════════════════════════════════════ -->
+<div id="ui-overlay">
+
+  <!-- Top row -->
+  <div class="flex items-center justify-between gap-3">
+    <a href="../index.html"
+       style="background:rgba(0,0,0,.5);border:1.5px solid rgba(255,255,255,.2);
+              color:white;text-decoration:none;font-size:13px;font-weight:700;
+              padding:8px 16px;border-radius:12px;backdrop-filter:blur(6px);">
+      ← Menu
+    </a>
+
+    <!-- Mode tabs -->
+    <div style="display:flex;background:rgba(0,0,0,.5);border:1.5px solid rgba(255,255,255,.15);
+                border-radius:50px;overflow:hidden;backdrop-filter:blur(6px);">
+      <button id="tab-ar" onclick="setMode('ar')"
+        style="padding:7px 16px;font-size:12px;font-weight:700;color:rgba(255,255,255,.6);
+               border:none;cursor:pointer;background:transparent;font-family:'Outfit',sans-serif;">
+        📷 Marker AR
+      </button>
+      <button id="tab-viewer" onclick="setMode('viewer')"
+        style="padding:7px 16px;font-size:12px;font-weight:700;color:rgba(255,255,255,.6);
+               border:none;cursor:pointer;background:transparent;font-family:'Outfit',sans-serif;">
+        🔮 3D Viewer
+      </button>
     </div>
 
-    <!-- Info Panel (muncul saat marker ditemukan) -->
-    <div id="info-panel" class="hidden glass-card p-5 text-white max-w-sm mx-auto mt-4 shadow-2xl">
-      <div class="flex justify-between items-start">
-        <h2 id="shape-name" class="text-2xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Balok</h2>
-        <span id="shape-emoji" class="text-3xl">📦</span>
-      </div>
-      <div class="grid grid-cols-3 gap-3 mt-3 text-center">
-        <div class="bg-white/10 rounded-xl p-2">
-          <p class="text-xs text-blue-300">Sisi</p>
-          <p id="shape-sisi" class="text-2xl font-bold">6</p>
-        </div>
-        <div class="bg-white/10 rounded-xl p-2">
-          <p class="text-xs text-blue-300">Rusuk</p>
-          <p id="shape-rusuk" class="text-2xl font-bold">12</p>
-        </div>
-        <div class="bg-white/10 rounded-xl p-2">
-          <p class="text-xs text-blue-300">Sudut</p>
-          <p id="shape-sudut" class="text-2xl font-bold">8</p>
-        </div>
-      </div>
-      <div class="mt-3 text-sm text-white/80 text-center italic" id="shape-desc">
-        Contoh: Kotak sepatu, lemari, batu bata
-      </div>
-    </div>
-
-    <!-- Tombol pilih bangun ruang (scroll horizontal) -->
-    <div class="flex gap-3 justify-center overflow-x-auto pb-2">
-      <button class="shape-btn bg-black/40 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium" data-shape="balok">
-        📦 Balok
-      </button>
-      <button class="shape-btn bg-black/40 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium" data-shape="bola">
-        ⚽ Bola
-      </button>
-      <button class="shape-btn bg-black/40 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium" data-shape="kerucut">
-        🎩 Kerucut
-      </button>
-      <button class="shape-btn bg-black/40 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium" data-shape="tabung">
-        🥫 Tabung
-      </button>
-      <button class="shape-btn bg-black/40 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium" data-shape="prisma">
-        🔺 Prisma
-      </button>
+    <!-- Status -->
+    <div id="status-badge"
+         style="background:rgba(0,0,0,.5);border:1.5px solid rgba(255,255,255,.15);
+                backdrop-filter:blur(6px);border-radius:50px;
+                padding:7px 14px;display:flex;align-items:center;gap:6px;
+                font-size:12px;font-weight:700;color:white;">
+      <div id="status-dot" style="width:8px;height:8px;border-radius:50%;background:#ef4444;" class="dot-blink"></div>
+      <span id="status-txt">Mode 3D Viewer</span>
     </div>
   </div>
 
-  <!-- Audio elements (sesuai aset Anda) -->
-  <audio id="backsound" loop preload="auto">
-    <source src="../assets/sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg" type="audio/mpeg">
-  </audio>
-  <audio id="click-sound" preload="auto">
-    <source src="../assets/sound/klik.mpeg" type="audio/mpeg">
-  </audio>
-  <audio id="success-sound" preload="auto">
-    <source src="../assets/sound/berhasil.mpeg" type="audio/mpeg">
-  </audio>
+  <!-- Info panel (tengah, tampil saat marker AR ditemukan) -->
+  <div id="info-panel" class="hidden" style="margin-top:8px;">
+    <div class="flex justify-between items-center mb-2">
+      <h2 id="shape-name" class="text-xl font-black gtext">Balok</h2>
+      <span id="shape-emoji" style="font-size:24px;">📦</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:8px;">
+      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:8px;">
+        <div style="font-size:10px;color:#60a5fa;font-weight:700;">SISI</div>
+        <div id="shape-sisi" style="font-size:22px;font-weight:900;color:white;">6</div>
+      </div>
+      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:8px;">
+        <div style="font-size:10px;color:#60a5fa;font-weight:700;">RUSUK</div>
+        <div id="shape-rusuk" style="font-size:22px;font-weight:900;color:white;">12</div>
+      </div>
+      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:8px;">
+        <div style="font-size:10px;color:#60a5fa;font-weight:700;">SUDUT</div>
+        <div id="shape-sudut" style="font-size:22px;font-weight:900;color:white;">8</div>
+      </div>
+    </div>
+    <p id="shape-desc" style="font-size:12px;color:rgba(255,255,255,.6);text-align:center;font-style:italic;"></p>
+  </div>
 
-  <!-- A-Frame Scene -->
-  <a-scene embedded 
-           arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;" 
-           vr-mode-ui="enabled: false"
-           renderer="antialias: true; alpha: false">
-    
-    <!-- Camera (otomatis ditambahkan AR.js) -->
-    
-    <!-- Marker Hiro -->
-    <a-marker id="hiro-marker" preset="hiro">
-      <!-- Model 3D akan diisi oleh JS -->
-      <a-entity id="ar-model" gltf-model="../assets/model3D/balok.glb" scale="0.5 0.5 0.5" position="0 0 0">
-        <a-animation attribute="rotation" dur="10000" fill="forwards" to="0 360 0" easing="linear" repeat="indefinite"></a-animation>
-      </a-entity>
-    </a-marker>
-    
-    <a-entity camera></a-entity>
-  </a-scene>
+  <!-- Spacer -->
+  <div style="flex:1;"></div>
 
-  <script>
-    // Mapping model 3D (path sesuai folder assets/model3D/)
-    const models = {
-      balok: '../assets/model3D/balok.glb',
-      bola: '../assets/model3D/bola.glb',
-      kerucut: '../assets/model3D/kerucut.glb',
-      tabung: '../assets/model3D/tabung.glb',
-      prisma: '../assets/model3D/prisma.glb'
-    };
-    
-    // Data lengkap materi (nama, sisi, rusuk, sudut, deskripsi, emoji)
-    const info = {
-      balok: { name:'Balok', sisi:6, rusuk:12, sudut:8, desc:'Kotak sepatu, lemari, batu bata', emoji:'📦' },
-      bola: { name:'Bola', sisi:1, rusuk:0, sudut:0, desc:'Bola basket, kelereng, melon', emoji:'⚽' },
-      kerucut: { name:'Kerucut', sisi:2, rusuk:1, sudut:1, desc:'Topi ulang tahun, cone es krim, tumpeng', emoji:'🎩' },
-      tabung: { name:'Tabung', sisi:3, rusuk:2, sudut:0, desc:'Kaleng susu, pipa, botol minum', emoji:'🥫' },
-      prisma: { name:'Prisma Segitiga', sisi:5, rusuk:9, sudut:6, desc:'Tenda pramuka, cokelat Toblerone', emoji:'🔺' }
-    };
+  <!-- Shape selector (bawah) -->
+  <div>
+    <p style="font-size:10px;color:rgba(255,255,255,.35);text-align:center;
+              letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">
+      Pilih Bangun Ruang
+    </p>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;" id="shape-btns">
+      <!-- Generated by JS -->
+    </div>
+    <p id="ar-hint" style="font-size:11px;color:rgba(255,255,255,.3);text-align:center;
+                            margin-top:8px;display:none;">
+      📌 Arahkan kamera ke <strong style="color:rgba(255,255,255,.6)">Hiro Marker</strong> untuk tampilkan 3D
+    </p>
+  </div>
+</div>
 
-    // Audio elements
-    const backsound = document.getElementById('backsound');
-    const clickSound = document.getElementById('click-sound');
-    const successSound = document.getElementById('success-sound');
-    
-    // Set volume
-    backsound.volume = 0.3;
-    clickSound.volume = 0.5;
-    successSound.volume = 0.7;
-    
-    let audioEnabled = false;
-    // Fungsi mengaktifkan audio (karena autoplay diblokir)
-    function enableAudio() {
-      if (audioEnabled) return;
-      backsound.play().then(() => {
-        backsound.loop = true;
-      }).catch(e => console.log("Backsound perlu klik user"));
-      clickSound.play().then(() => clickSound.pause()).catch(e=>{});
-      successSound.play().then(() => successSound.pause()).catch(e=>{});
-      audioEnabled = true;
+<!-- AUDIO -->
+<audio id="snd-bg"      loop><source src="../assets/sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg"></audio>
+<audio id="snd-click"       ><source src="../assets/sound/klik.mpeg"></audio>
+<audio id="snd-success"     ><source src="../assets/sound/berhasil.mpeg"></audio>
+
+<script>
+/* ════════════════════════════════════════
+   DATA SHAPES
+════════════════════════════════════════ */
+const SHAPES = [
+  { key:'kubus', label:'Kubus', emoji:'🧊', glb:'../assets/model3D/kubus.glb',
+    sisi:6, rusuk:12, sudut:8, desc:'Contoh: Dadu, rubik, kotak kado.' },
+  { key:'balok',   label:'Balok',   emoji:'📦', glb:'../assets/model3D/balok.glb',
+    sisi:6, rusuk:12, sudut:8, desc:'Kotak sepatu, lemari, batu bata' },
+  { key:'bola',    label:'Bola',    emoji:'⚽', glb:'../assets/model3D/bola.glb',
+    sisi:1, rusuk:0,  sudut:0, desc:'Bola basket, kelereng, melon' },
+  { key:'kerucut', label:'Kerucut', emoji:'🎩', glb:'../assets/model3D/kerucut.glb',
+    sisi:2, rusuk:1,  sudut:1, desc:'Topi ulang tahun, cone es krim' },
+  { key:'tabung',  label:'Tabung',  emoji:'🥫', glb:'../assets/model3D/tabung.glb',
+    sisi:3, rusuk:2,  sudut:0, desc:'Kaleng, pipa, botol minum' },
+  { key:'limas',   label:'Limas Segiempat', emoji:'🔺', glb:'../assets/model3D/limassegi4.glb',
+    sisi:5, rusuk:8,  sudut:5, desc:'Contoh: Piramida Mesir, atap rumah joglo.' },
+  { key:'prisma',  label:'Prisma',  emoji:'🔺', glb:'../assets/model3D/prisma.glb',
+    sisi:5, rusuk:9,  sudut:6, desc:'Tenda pramuka, cokelat Toblerone' },
+  { key:'prismasegi6', label:'Prisma Segienam', emoji:'🔶', glb:'../assets/model3D/prismasegi6.glb',
+      sisi:8, rusuk:18, sudut:12, desc:'Contoh: Mur baut, pensil segienam, sarang lebah.' },
+];
+
+/* ════════════════════════════════════════
+   DETECT HTTPS
+════════════════════════════════════════ */
+const isHTTPS = location.protocol === 'https:';
+const isLocal = ['localhost','127.0.0.1'].includes(location.hostname);
+const canAR   = isHTTPS || isLocal;   // AR hanya bisa HTTPS atau localhost
+
+let currentMode    = canAR ? 'ar' : 'viewer';
+let currentShape   = 'balok';
+let audioOn        = false;
+let arLoaded       = false;   // A-Frame sudah di-inject?
+
+/* ════════════════════════════════════════
+   BUILD SHAPE BUTTONS
+════════════════════════════════════════ */
+const btnContainer = document.getElementById('shape-btns');
+SHAPES.forEach((s, i) => {
+  const btn = document.createElement('button');
+  btn.className    = 'shape-btn' + (i === 0 ? ' active' : '');
+  btn.id           = `sbtn-${s.key}`;
+  btn.textContent  = `${s.emoji} ${s.label}`;
+  btn.onclick      = () => selectShape(s.key);
+  btnContainer.appendChild(btn);
+});
+
+/* ════════════════════════════════════════
+   SELECT SHAPE
+════════════════════════════════════════ */
+function selectShape(key) {
+  const shape = SHAPES.find(s => s.key === key);
+  if (!shape) return;
+  currentShape = key;
+  playClick();
+
+  // Update buttons
+  SHAPES.forEach(s => document.getElementById(`sbtn-${s.key}`)?.classList.remove('active'));
+  document.getElementById(`sbtn-${key}`)?.classList.add('active');
+
+  // Update info panel text
+  document.getElementById('shape-name').textContent  = shape.label;
+  document.getElementById('shape-emoji').textContent = shape.emoji;
+  document.getElementById('shape-sisi').textContent  = shape.sisi;
+  document.getElementById('shape-rusuk').textContent = shape.rusuk;
+  document.getElementById('shape-sudut').textContent = shape.sudut;
+  document.getElementById('shape-desc').textContent  = `Contoh: ${shape.desc}`;
+
+  if (currentMode === 'viewer') {
+    document.getElementById('main-mv').setAttribute('src', shape.glb);
+  } else {
+    // Update A-Frame model
+    const ent = document.getElementById('ar-entity');
+    if (ent) ent.setAttribute('gltf-model', shape.glb);
+  }
+}
+
+/* ════════════════════════════════════════
+   MODE SWITCHING
+════════════════════════════════════════ */
+function setMode(mode) {
+  currentMode = mode;
+
+  const arWrap     = document.getElementById('ar-scene-wrap');
+  const viewerWrap = document.getElementById('viewer-wrap');
+  const tabAR      = document.getElementById('tab-ar');
+  const tabViewer  = document.getElementById('tab-viewer');
+  const arHint     = document.getElementById('ar-hint');
+  const infoPanel  = document.getElementById('info-panel');
+  const statusDot  = document.getElementById('status-dot');
+  const statusTxt  = document.getElementById('status-txt');
+
+  if (mode === 'ar') {
+    if (!canAR) {
+      // Tidak bisa AR — tampilkan notice
+      document.getElementById('https-notice').style.display = 'flex';
+      return;
     }
-    // Aktifkan saat user pertama kali menyentuh layar
-    const enableOnce = () => {
-      enableAudio();
-      document.removeEventListener('click', enableOnce);
-      document.removeEventListener('touchstart', enableOnce);
-    };
-    document.addEventListener('click', enableOnce);
-    document.addEventListener('touchstart', enableOnce);
-    
-    function playClick() {
-      if (!audioEnabled) return;
-      clickSound.currentTime = 0;
-      clickSound.play().catch(e=>{});
-    }
-    
-    function playSuccess() {
-      if (!audioEnabled) return;
-      successSound.currentTime = 0;
-      successSound.play().catch(e=>{});
-    }
-    
-    // Elemen DOM
+
+    // Inject A-Frame hanya sekali
+    if (!arLoaded) loadAFrame();
+
+    arWrap.classList.add('visible');
+    viewerWrap.classList.remove('visible');
+    tabAR.classList.add('tab-active');
+    tabViewer.classList.remove('tab-active');
+    arHint.style.display = 'block';
+    infoPanel.classList.add('hidden');
+    statusDot.className  = 'dot-blink';
+    statusDot.style.background = '#ef4444';
+    statusTxt.textContent = 'Mencari Marker...';
+
+  } else {
+    arWrap.classList.remove('visible');
+    viewerWrap.classList.add('visible');
+    tabViewer.classList.add('tab-active');
+    tabAR.classList.remove('tab-active');
+    arHint.style.display = 'none';
+    infoPanel.classList.add('hidden');
+    statusDot.style.background = '#22c55e';
+    statusDot.className = '';
+    statusTxt.textContent = 'Mode 3D Viewer';
+
+    // Pastikan model-viewer aktif
+    document.getElementById('main-mv').setAttribute('src',
+      SHAPES.find(s => s.key === currentShape)?.glb || '../assets/model3D/balok.glb'
+    );
+  }
+}
+
+/* ════════════════════════════════════════
+   LOAD A-FRAME (lazy, hanya saat butuh AR)
+════════════════════════════════════════ */
+function loadAFrame() {
+  arLoaded = true;
+  const wrap = document.getElementById('ar-scene-wrap');
+
+  wrap.innerHTML = `
+    <a-scene embedded
+      arjs="sourceType:webcam;debugUIEnabled:false;detectionMode:mono_and_matrix;"
+      vr-mode-ui="enabled:false"
+      renderer="antialias:true;alpha:true;"
+      style="width:100%;height:100%;">
+
+      <a-marker id="hiro-marker" preset="hiro" smooth="true" smoothCount="5">
+        <a-entity id="ar-entity"
+          gltf-model="${SHAPES.find(s=>s.key===currentShape)?.glb}"
+          scale="0.5 0.5 0.5"
+          position="0 0 0"
+          animation="property:rotation;to:0 360 0;loop:true;dur:8000;easing:linear">
+        </a-entity>
+      </a-marker>
+
+      <a-entity camera></a-entity>
+    </a-scene>
+  `;
+
+  // Tunggu scene siap lalu pasang event marker
+  setTimeout(() => {
     const marker = document.getElementById('hiro-marker');
-    const infoPanel = document.getElementById('info-panel');
-    const statusDiv = document.getElementById('status');
-    const shapeNameSpan = document.getElementById('shape-name');
-    const shapeEmojiSpan = document.getElementById('shape-emoji');
-    const shapeSisiSpan = document.getElementById('shape-sisi');
-    const shapeRusukSpan = document.getElementById('shape-rusuk');
-    const shapeSudutSpan = document.getElementById('shape-sudut');
-    const shapeDescSpan = document.getElementById('shape-desc');
-    
-    // Ambil referensi entity model AR
-    let arModelEntity = document.getElementById('ar-model');
-    
-    // Event marker ditemukan
+    if (!marker) return;
+
     marker.addEventListener('markerFound', () => {
-      infoPanel.classList.remove('hidden');
-      statusDiv.innerHTML = '<span class="w-2 h-2 bg-green-500 rounded-full status-pulse"></span><span>✅ Marker Ditemukan!</span>';
-      playSuccess(); // suara berhasil saat marker terdeteksi
+      document.getElementById('info-panel').classList.remove('hidden');
+      document.getElementById('status-dot').style.background = '#22c55e';
+      document.getElementById('status-dot').className = 'dot-blink';
+      document.getElementById('status-txt').textContent = '✅ Marker Ditemukan!';
+      playSuccess();
     });
-    
     marker.addEventListener('markerLost', () => {
-      infoPanel.classList.add('hidden');
-      statusDiv.innerHTML = '<span class="w-2 h-2 bg-red-500 rounded-full status-pulse"></span><span>🔍 Mencari Marker...</span>';
+      document.getElementById('info-panel').classList.add('hidden');
+      document.getElementById('status-dot').style.background = '#ef4444';
+      document.getElementById('status-dot').className = 'dot-blink';
+      document.getElementById('status-txt').textContent = 'Mencari Marker...';
     });
-    
-    // Fungsi ganti shape (model 3D + info panel)
-    function switchShape(type) {
-      if (!models[type]) return;
-      playClick(); // suara klik saat ganti shape
-      // Update model 3D
-      if (arModelEntity) {
-        arModelEntity.setAttribute('gltf-model', models[type]);
-        // Reset animasi rotasi (tetap berputar)
-        arModelEntity.setAttribute('animation', 'property: rotation; dur: 10000; to: 0 360 0; loop: true; easing: linear');
-      }
-      // Update info panel
-      const data = info[type];
-      shapeNameSpan.textContent = data.name;
-      shapeEmojiSpan.textContent = data.emoji;
-      shapeSisiSpan.textContent = data.sisi;
-      shapeRusukSpan.textContent = data.rusuk;
-      shapeSudutSpan.textContent = data.sudut;
-      shapeDescSpan.textContent = `Contoh: ${data.desc}`;
-    }
-    
-    // Pasang event listener ke tombol
-    document.querySelectorAll('.shape-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        // Hapus class active dari semua, tambahkan ke tombol yg diklik
-        document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        switchShape(btn.dataset.shape);
-      });
-    });
-    
-    // Set shape default (balok) setelah scene siap
-    setTimeout(() => {
-      switchShape('balok');
-      document.querySelector('.shape-btn[data-shape="balok"]').classList.add('active');
-    }, 1000);
-  </script>
+  }, 2000);
+}
+
+/* ════════════════════════════════════════
+   NOTICE ACTIONS
+════════════════════════════════════════ */
+function closeNoticeUseViewer() {
+  document.getElementById('https-notice').style.display = 'none';
+  setMode('viewer');
+}
+function closeNoticeUseAR() {
+  document.getElementById('https-notice').style.display = 'none';
+  // Coba inject A-Frame meski HTTP (mungkin tidak berfungsi)
+  if (!arLoaded) loadAFrame();
+  document.getElementById('ar-scene-wrap').classList.add('visible');
+  document.getElementById('viewer-wrap').classList.remove('visible');
+  document.getElementById('tab-ar').classList.add('tab-active');
+  document.getElementById('tab-viewer').classList.remove('tab-active');
+  document.getElementById('ar-hint').style.display = 'block';
+  document.getElementById('status-dot').style.background = '#fbbf24';
+  document.getElementById('status-txt').textContent = 'HTTP – Kamera Mungkin Gagal';
+}
+
+/* ════════════════════════════════════════
+   AUDIO
+════════════════════════════════════════ */
+const sndBg      = document.getElementById('snd-bg');
+const sndClick   = document.getElementById('snd-click');
+const sndSuccess = document.getElementById('snd-success');
+sndBg.volume=.28; sndClick.volume=.5; sndSuccess.volume=.7;
+
+const unlockAudio = () => {
+  if (audioOn) return; audioOn=true;
+  sndBg.play().catch(()=>{});
+  document.removeEventListener('pointerdown', unlockAudio);
+};
+document.addEventListener('pointerdown', unlockAudio);
+
+function playClick()   { if(!audioOn)return; sndClick.currentTime=0;   sndClick.play().catch(()=>{}); }
+function playSuccess() { if(!audioOn)return; sndSuccess.currentTime=0; sndSuccess.play().catch(()=>{}); }
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+(function init() {
+  // Set default shape info
+  selectShape('balok');
+
+  if (!canAR) {
+    // HTTP + IP → langsung tampilkan notice
+    document.getElementById('https-notice').style.display = 'flex';
+    // Setelah notice ditutup, mode viewer aktif — prepare dulu
+    setMode('viewer');
+  } else {
+    // HTTPS atau localhost → load A-Frame, mode AR default
+    // Inject A-Frame script tag dulu (perlu load sebelum inject HTML)
+    const aframeScript = document.createElement('script');
+    aframeScript.src = 'https://aframe.io/releases/1.4.0/aframe.min.js';
+    aframeScript.onload = () => {
+      const arjsScript = document.createElement('script');
+      arjsScript.src = 'https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js';
+      arjsScript.onload = () => {
+        loadAFrame();
+        document.getElementById('ar-scene-wrap').classList.add('visible');
+        document.getElementById('tab-ar').classList.add('tab-active');
+        document.getElementById('ar-hint').style.display = 'block';
+      };
+      document.head.appendChild(arjsScript);
+    };
+    document.head.appendChild(aframeScript);
+  }
+})();
+</script>
 </body>
 </html>

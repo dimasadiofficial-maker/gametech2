@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Materi Bangun Ruang - Belajar 3D Interaktif</title>
+  <title>Materi Bangun Ruang | Geometri AR</title>
+  <!-- Tailwind (ringan, hanya untuk utility dasar) -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font & manifest -->
   <link rel="manifest" href="../manifest.json">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-  <!-- Three.js -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Import map untuk Three.js -->
   <script type="importmap">
     {
       "imports": {
@@ -17,342 +19,612 @@
     }
   </script>
   <style>
-    body { font-family: 'Outfit', sans-serif; }
-    .glass-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      transition: all 0.3s ease;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
-    .glass-card:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: translateY(-5px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;         /* pastikan tidak ada scroll */
+      font-family: 'Outfit', sans-serif;
     }
-    .masonry {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.5rem;
+
+    /* Background dengan gradasi dinamis + overlay gelap + tekstur halus */
+    body {
+      background: radial-gradient(circle at 20% 30%, #0a0f2a, #030617);
+      position: relative;
     }
-    .gradient-text {
-      background: linear-gradient(45deg, #60a5fa, #a78bfa);
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCIgdmlld0JveD0iMCAwIDQwIDQwIj48cGF0aCBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wMykiIHN0cm9rZS13aWR0aD0iMSIgZD0iTTAgMGw0MCA0ME0wIDQwTDQwIDAiLz48L3N2Zz4=');
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Kontainer utama dengan backdrop glass transparan */
+    .content-wrap {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 20px 20px;
+      gap: 16px;
+      backdrop-filter: blur(2px);
+    }
+
+    /* ========= HEADER / TOP BAR ========= */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .logo-area h1 {
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #C084FC, #60A5FA, #34D399);
       -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: -0.3px;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .logo-area p {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+    .nav-row {
+      display: flex;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
+      padding: 6px 12px;
+      border-radius: 60px;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: #e2e8f0;
+      font-weight: 500;
+      font-size: 0.8rem;
+      padding: 6px 14px;
+      border-radius: 40px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .nav-btn:hover {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      transform: scale(0.96);
+    }
+    #muteBtn {
+      background: rgba(255,255,255,0.08);
+    }
+
+    /* ========= GRID 4x2 ========= */
+    .shape-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 18px;
+      min-height: 0;
+    }
+
+    /* Kartu dengan efek kaca premium */
+    .shape-card {
+      background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      backdrop-filter: blur(10px);
+      border-radius: 32px;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 12px 28px -8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+      padding: 14px 8px;
+    }
+    .shape-card:hover {
+      transform: translateY(-6px) scale(1.02);
+      background: linear-gradient(145deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+      border-color: rgba(255,255,255,0.4);
+      box-shadow: 0 24px 36px -12px rgba(0,0,0,0.5);
+    }
+    .shape-card:active {
+      transform: scale(0.97);
+    }
+
+    /* Lingkaran background untuk ikon */
+    .card-icon {
+      width: 80px;
+      height: 80px;
+      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.2), rgba(96,165,250,0.2));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.4rem;
+      transition: 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .shape-card:hover .card-icon {
+      transform: scale(1.05);
+      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.3), rgba(96,165,250,0.3));
+    }
+    .card-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #f1f5f9;
+      letter-spacing: -0.2px;
+      text-align: center;
+    }
+    .card-hint {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #94a3b8;
+      background: rgba(0,0,0,0.3);
+      padding: 4px 10px;
+      border-radius: 40px;
+    }
+
+    /* ========= MODAL ========= */
+    #detail-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 23, 0.85);
+      backdrop-filter: blur(20px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      transition: backdrop-filter 0.2s;
+    }
+    #detail-modal.open {
+      display: flex;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .modal-card {
+      background: rgba(15, 25, 45, 0.95);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 40px;
+      padding: 24px;
+      width: 100%;
+      max-width: 880px;
+      max-height: 90vh;
+      color: white;
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      box-shadow: 0 30px 40px -20px black;
+      backdrop-filter: blur(4px);
+    }
+    @media (max-width: 640px) {
+      .modal-card {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 20px;
+      }
+      .modal-3d-wrap {
+        height: 220px !important;
+      }
+      .card-icon {
+        width: 65px;
+        height: 65px;
+        font-size: 2.5rem;
+      }
+      .shape-grid {
+        gap: 12px;
+      }
+      .content-wrap {
+        padding: 12px;
+      }
+    }
+    .close-btn {
+      position: absolute;
+      top: 18px;
+      right: 22px;
+      width: 38px;
+      height: 38px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: white;
+      font-size: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      z-index: 12;
+    }
+    .close-btn:hover {
+      background: rgba(255,255,255,0.25);
+      transform: rotate(90deg);
+    }
+    .modal-3d-wrap {
+      background: #0a0e1a;
+      border-radius: 28px;
+      overflow: hidden;
+      height: 280px;
+      position: relative;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), 0 8px 20px rgba(0,0,0,0.3);
+    }
+    #model-canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+    #loading-indicator {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.6);
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #a5f3fc;
+      backdrop-filter: blur(4px);
+    }
+    .modal-info {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      justify-content: center;
+    }
+    .modal-title {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #a5b4fc, #60a5fa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .props-box {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 24px;
+      padding: 16px;
+    }
+    .props-box h3 {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #7aa9ff;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .props-box ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .props-box li {
+      display: flex;
+      gap: 10px;
+      font-size: 0.9rem;
+      align-items: baseline;
+      color: #e2e8f0;
+    }
+    .props-box li span:first-child {
+      color: #60a5fa;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    .modal-desc {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      font-style: italic;
+      border-left: 2px solid #60a5fa;
+      padding-left: 14px;
+    }
+    /* responsif grid untuk layar lebih kecil (tablet) tetap 4 kolom, namun jika terlalu sempit jadi 2 baris? tetap 4 kolom sudah baik */
+    @media (max-width: 720px) {
+      .shape-grid {
+        gap: 12px;
+      }
+      .card-name {
+        font-size: 0.9rem;
+      }
+      .card-icon {
+        width: 65px;
+        height: 65px;
+        font-size: 2.4rem;
+      }
+    }
+    @media (max-width: 550px) {
+      .shape-grid {
+        gap: 10px;
+      }
+      .card-name {
+        font-size: 0.75rem;
+      }
+      .card-icon {
+        width: 55px;
+        height: 55px;
+        font-size: 2rem;
+      }
+      .card-hint {
+        font-size: 0.55rem;
+      }
     }
   </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen bg-cover bg-fixed bg-center" style="background-image: url('../assets/picture/background.jpg');">
-  <div class="fixed inset-0 bg-black/70 backdrop-blur-sm -z-10"></div>
+<body>
 
-  <!-- Audio elements -->
-  <audio id="backsound" loop preload="auto">
-    <source src="../assets/sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg" type="audio/mpeg">
-  </audio>
-  <audio id="click-sound" preload="auto">
-    <source src="../assets/sound/klik.mpeg" type="audio/mpeg">
-  </audio>
+<!-- AUDIO -->
+<audio id="backsound" loop preload="auto">
+  <source src="../assets/sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg" type="audio/mpeg">
+</audio>
+<audio id="click-sound" preload="auto">
+  <source src="../assets/sound/klik.mpeg" type="audio/mpeg">
+</audio>
 
-  <div class="relative z-10 max-w-6xl mx-auto p-6 md:p-10">
-    <!-- Header + navigasi -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12">
-      <div>
-        <div class="flex items-center gap-3 text-white/60 mb-2 flex-wrap">
-          <a href="../index.html" class="hover:text-white flex items-center gap-1 transition-colors bg-white/10 px-3 py-1 rounded-full">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            Menu
-          </a>
-          <a href="../ar.html" class="hover:text-white transition-colors bg-white/10 px-3 py-1 rounded-full">AR</a>
-          <a href="../game.html" class="hover:text-white transition-colors bg-white/10 px-3 py-1 rounded-full">Game</a>
-          <a href="kuis.html" class="hover:text-white transition-colors bg-white/10 px-3 py-1 rounded-full">Kuis</a>
-          <button id="muteBtn" class="ml-auto bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm flex items-center gap-1">
-            <span>🔊</span> <span>Backsound</span>
-          </button>
-        </div>
-        <h1 class="text-4xl md:text-5xl font-black gradient-text">Materi Bangun Ruang</h1>
-        <p class="text-white/60 mt-2">Klik kartu untuk melihat model 3D + suara</p>
-      </div>
+<div class="content-wrap">
+  <!-- Header lebih elegan -->
+  <div class="top-bar">
+    <div class="logo-area">
+      <h1>Bangun Ruang</h1>
+      <p>Geometri 3D • Interaktif</p>
     </div>
-
-    <!-- Grid materi -->
-    <div class="masonry" id="materi-container"></div>
-  </div>
-
-  <!-- Modal Detail 3D -->
-  <div id="detail-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center p-4 z-50 transition-all duration-300">
-    <div class="bg-gray-800/90 border border-white/20 rounded-[2rem] p-6 max-w-4xl w-full text-white relative shadow-2xl">
-      <button onclick="closeDetail()" class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors z-20 text-2xl font-light">
-        &times;
-      </button>
-      <div class="grid md:grid-cols-2 gap-6">
-        <!-- Canvas 3D -->
-        <div class="bg-black/40 rounded-xl overflow-hidden aspect-square flex items-center justify-center relative">
-          <canvas id="model-canvas" class="w-full h-full" style="display: block;"></canvas>
-          <div id="loading-indicator" class="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-sm">Memuat model 3D...</div>
-        </div>
-        <!-- Info teks -->
-        <div class="space-y-4">
-          <h2 id="detail-title" class="text-3xl font-black gradient-text"></h2>
-          <div class="bg-white/5 p-4 rounded-xl border border-white/10">
-            <h3 class="text-blue-400 font-bold text-xs uppercase tracking-widest mb-2">Ciri-ciri Utama</h3>
-            <ul id="detail-props" class="space-y-2 text-white/80"></ul>
-          </div>
-          <div id="detail-desc" class="text-white/60 text-sm leading-relaxed italic"></div>
-        </div>
-      </div>
+    <div class="nav-row">
+      <a href="../index.html" class="nav-btn">🏠 Menu</a>
+      <a href="ar.html" class="nav-btn">📷 AR</a>
+      <a href="game.html" class="nav-btn">🎮 Game</a>
+      <a href="kuis.html" class="nav-btn">📝 Kuis</a>
+      <button id="muteBtn" class="nav-btn">🔊 Musik</button>
     </div>
   </div>
 
-  <script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+  <!-- Grid bangun ruang 4x2 -->
+  <div class="shape-grid" id="shape-grid"></div>
+</div>
 
-    // ---------- Mapping shape ke file 3D (path sesuai struktur assets/model3D/) ----------
-    const shapeToModel = {
-      'Kubus': '../assets/model3D/balok.glb',
-      'Balok': '../assets/model3D/balok.glb',
-      'Tabung': '../assets/model3D/tabung.glb',
-      'Bola': '../assets/model3D/bola.glb',
-      'Kerucut': '../assets/model3D/kerucut.glb',
-      'Limas Segiempat': '../assets/model3D/kerucut.glb', // fallback
-      'Prisma Segitiga': '../assets/model3D/prisma.glb',
-      'Prisma Segienam': '../assets/model3D/prisma.glb'
-    };
+<!-- MODAL DETAIL 3D (lebih smooth) -->
+<div id="detail-modal">
+  <div class="modal-card">
+    <button class="close-btn" onclick="closeDetail()">✕</button>
+    <div class="modal-3d-wrap">
+      <canvas id="model-canvas"></canvas>
+      <div id="loading-indicator">🌀 Memuat model 3D ...</div>
+    </div>
+    <div class="modal-info">
+      <h2 class="modal-title" id="detail-title">–</h2>
+      <div class="props-box">
+        <h3>📐 Ciri-ciri Utama</h3>
+        <ul id="detail-props"></ul>
+      </div>
+      <p class="modal-desc" id="detail-desc"></p>
+    </div>
+  </div>
+</div>
 
-    // Data materi
-    const shapes = [
-      { name: 'Kubus', props: ['6 sisi persegi sama luas', '12 rusuk sama panjang', '8 titik sudut'], desc: 'Contoh: Dadu, rubik.' },
-      { name: 'Balok', props: ['6 sisi (3 pasang sejajar)', '12 rusuk', '8 titik sudut'], desc: 'Contoh: Kotak sepatu, lemari.' },
-      { name: 'Tabung', props: ['3 sisi (alas, tutup, selimut)', '2 rusuk lengkung', 'Tidak ada titik sudut'], desc: 'Contoh: Kaleng, pipa.' },
-      { name: 'Bola', props: ['1 sisi lengkung', 'Tidak ada rusuk', 'Tidak ada titik sudut'], desc: 'Contoh: Bola basket, kelereng.' },
-      { name: 'Kerucut', props: ['2 sisi (alas & selimut)', '1 rusuk lengkung', '1 titik puncak'], desc: 'Contoh: Topi ulang tahun, cone es krim.' },
-      { name: 'Limas Segiempat', props: ['5 sisi (1 alas segiempat, 4 tegak)', '8 rusuk', '5 titik sudut'], desc: 'Contoh: Piramida, atap rumah.' },
-      { name: 'Prisma Segitiga', props: ['5 sisi (2 segitiga, 3 persegi)', '9 rusuk', '6 titik sudut'], desc: 'Contoh: Tenda, cokelat Toblerone.' },
-      { name: 'Prisma Segienam', props: ['8 sisi (2 segienam, 6 persegi)', '18 rusuk', '12 titik sudut'], desc: 'Contoh: Mur baut, pensil segienam.' }
-    ];
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-    // Render kartu
-    const container = document.getElementById('materi-container');
-    shapes.forEach(shape => {
-      const card = document.createElement('div');
-      card.className = 'glass-card rounded-[2rem] p-6 cursor-pointer group';
-      card.innerHTML = `
-        <div class="flex flex-col items-center gap-4">
-          <div class="bg-white/5 rounded-2xl p-4 w-full h-40 flex justify-center items-center border border-white/5 group-hover:bg-white/10 transition-colors">
-            <span class="text-6xl drop-shadow-2xl">${getEmoji(shape.name)}</span>
-          </div>
-          <div class="text-center">
-            <h3 class="text-xl font-bold mb-1">${shape.name}</h3>
-            <span class="text-xs text-white/40 uppercase tracking-widest font-semibold">Klik untuk 3D</span>
-          </div>
-        </div>
-      `;
-      card.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Mainkan suara klik
-        const clickAudio = document.getElementById('click-sound');
-        if (clickAudio) {
-          clickAudio.currentTime = 0;
-          clickAudio.play().catch(err => console.log("Audio klik error:", err));
-        }
-        openDetail(shape);
-      });
-      container.appendChild(card);
-    });
+  /* ========= DATA BANGUN RUANG (tetap) ========= */
+  const SHAPES = [
+    { name:'Kubus',          emoji:'🧊', glb:'../assets/model3D/kubus.glb',
+      props:['6 sisi persegi sama luas','12 rusuk sama panjang','8 titik sudut'],
+      desc:'Contoh: Dadu, rubik, kotak kado.' },
+    { name:'Balok',          emoji:'📦', glb:'../assets/model3D/balok.glb',
+      props:['6 sisi (3 pasang sejajar)','12 rusuk','8 titik sudut'],
+      desc:'Contoh: Kotak sepatu, lemari, batu bata.' },
+    { name:'Tabung',         emoji:'🥫', glb:'../assets/model3D/tabung.glb',
+      props:['3 sisi (alas, tutup, selimut)','2 rusuk lengkung','Tidak ada titik sudut'],
+      desc:'Contoh: Kaleng susu, pipa, botol minum.' },
+    { name:'Bola',           emoji:'⚽', glb:'../assets/model3D/bola.glb',
+      props:['1 sisi lengkung','Tidak ada rusuk','Tidak ada titik sudut'],
+      desc:'Contoh: Bola basket, kelereng, planet.' },
+    { name:'Kerucut',        emoji:'🎩', glb:'../assets/model3D/kerucut.glb',
+      props:['2 sisi (alas & selimut)','1 rusuk lengkung','1 titik puncak'],
+      desc:'Contoh: Topi ulang tahun, cone es krim, tumpeng.' },
+    { name:'Limas Segiempat',emoji:'🔺', glb:'../assets/model3D/limassegi4.glb',
+      props:['5 sisi (1 alas, 4 tegak)','8 rusuk','5 titik sudut'],
+      desc:'Contoh: Piramida Mesir, atap rumah joglo.' },
+    { name:'Prisma Segitiga', emoji:'🔷', glb:'../assets/model3D/prisma.glb',
+      props:['5 sisi (2 segitiga, 3 persegi)','9 rusuk','6 titik sudut'],
+      desc:'Contoh: Tenda, cokelat Toblerone, atap rumah.' },
+    { name:'Prisma Segienam', emoji:'🔶', glb:'../assets/model3D/prismasegi6.glb',
+      props:['8 sisi (2 segienam, 6 persegi)','18 rusuk','12 titik sudut'],
+      desc:'Contoh: Mur baut, pensil segienam, sarang lebah.' },
+  ];
 
-    function getEmoji(name) {
-      const map = { 'Kubus':'🧊','Balok':'📦','Tabung':'🥫','Bola':'⚽','Kerucut':'🎩','Limas Segiempat':'🔺','Prisma Segitiga':'🔷','Prisma Segienam':'🔶' };
-      return map[name] || '🧩';
-    }
-
-    // ---------- Three.js state ----------
-    let currentRenderer = null;
-    let currentScene = null;
-    let currentCamera = null;
-    let currentControls = null;
-    let animationId = null;
-    let currentModel = null;
-
-    async function openDetail(shape) {
-      const modal = document.getElementById('detail-modal');
-      document.getElementById('detail-title').innerText = shape.name;
-      const propsList = document.getElementById('detail-props');
-      propsList.innerHTML = '';
-      shape.props.forEach(p => {
-        const li = document.createElement('li');
-        li.className = 'flex items-start gap-2';
-        li.innerHTML = `<span class="text-blue-500 mt-1">•</span> <span>${p}</span>`;
-        propsList.appendChild(li);
-      });
-      document.getElementById('detail-desc').innerText = shape.desc;
-      
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      
-      // Load 3D model
-      const modelPath = shapeToModel[shape.name];
-      if (modelPath) {
-        init3DViewer(modelPath);
-      } else {
-        const loadingDiv = document.getElementById('loading-indicator');
-        loadingDiv.innerHTML = 'Model 3D tidak tersedia';
-        loadingDiv.style.display = 'flex';
-      }
-    }
-
-    function init3DViewer(glbPath) {
-      // Bersihkan canvas lama jika ada
-      const oldCanvas = document.getElementById('model-canvas');
-      if (currentRenderer) {
-        if (animationId) cancelAnimationFrame(animationId);
-        currentRenderer.dispose();
-        // ganti canvas baru
-        const parent = oldCanvas.parentNode;
-        const newCanvas = document.createElement('canvas');
-        newCanvas.id = 'model-canvas';
-        newCanvas.className = 'w-full h-full';
-        newCanvas.style.display = 'block';
-        parent.replaceChild(newCanvas, oldCanvas);
-      }
-      
-      const canvas = document.getElementById('model-canvas');
-      const loadingDiv = document.getElementById('loading-indicator');
-      loadingDiv.style.display = 'flex';
-      loadingDiv.innerHTML = 'Memuat model 3D...';
-      
-      // Setup scene
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x111122);
-      scene.environment = null;
-      
-      // Lighting
-      const ambientLight = new THREE.AmbientLight(0x404060);
-      scene.add(ambientLight);
-      const mainLight = new THREE.DirectionalLight(0xffffff, 1);
-      mainLight.position.set(2, 5, 3);
-      scene.add(mainLight);
-      const fillLight = new THREE.PointLight(0x4466cc, 0.5);
-      fillLight.position.set(1, 2, 2);
-      scene.add(fillLight);
-      const backLight = new THREE.PointLight(0xffaa66, 0.3);
-      backLight.position.set(-1, 1, -2);
-      scene.add(backLight);
-      
-      // Camera
-      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-      camera.position.set(1.5, 1.5, 2);
-      camera.lookAt(0, 0, 0);
-      
-      // Renderer
-      const renderer = new THREE.WebGLRenderer({ canvas, alpha: false });
-      // Ukuran sementara
-      const container = document.querySelector('#detail-modal .grid');
-      const size = container.clientWidth > 800 ? 350 : 250;
-      renderer.setSize(size, size);
-      
-      // Controls
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.autoRotate = true;
-      controls.autoRotateSpeed = 1.5;
-      controls.enableZoom = true;
-      controls.enablePan = false;
-      
-      // Load GLTF
-      const loader = new GLTFLoader();
-      loader.load(glbPath, (gltf) => {
-        if (currentModel) scene.remove(currentModel);
-        currentModel = gltf.scene;
-        scene.add(currentModel);
-        // Center dan scale
-        const box = new THREE.Box3().setFromObject(currentModel);
-        const center = box.getCenter(new THREE.Vector3());
-        currentModel.position.sub(center);
-        const sizeBox = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(sizeBox.x, sizeBox.y, sizeBox.z);
-        const scale = 1.2 / maxDim;
-        currentModel.scale.set(scale, scale, scale);
-        loadingDiv.style.display = 'none';
-      }, undefined, (error) => {
-        console.error('Error loading model:', error);
-        loadingDiv.innerHTML = 'Gagal memuat model 3D. Pastikan file .glb tersedia.';
-      });
-      
-      function animate() {
-        animationId = requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
-      }
-      animate();
-      
-      // Simpan referensi untuk cleanup
-      currentRenderer = renderer;
-      currentScene = scene;
-      currentCamera = camera;
-      currentControls = controls;
-      
-      // Resize handler
-      const resizeObserver = () => {
-        if (!renderer) return;
-        const newSize = document.querySelector('#detail-modal .grid').clientWidth > 800 ? 350 : 250;
-        renderer.setSize(newSize, newSize);
-        camera.aspect = 1;
-        camera.updateProjectionMatrix();
-      };
-      window.addEventListener('resize', resizeObserver);
-      // simpan fungsi untuk dihapus nanti? tidak perlu, karena modal ditutup akan dispose renderer
-    }
-
-    window.closeDetail = function() {
-      const modal = document.getElementById('detail-modal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-      if (animationId) cancelAnimationFrame(animationId);
-      if (currentRenderer) {
-        currentRenderer.dispose();
-        currentRenderer = null;
-      }
-      currentModel = null;
-    };
-
-    // ---------- Backsound management (user gesture first) ----------
-    const backsound = document.getElementById('backsound');
-    let backsoundMuted = false;
-    const muteBtn = document.getElementById('muteBtn');
-    let audioEnabled = false;
-    
-    function enableAudio() {
-      if (audioEnabled) return;
-      backsound.play().then(() => {
-        audioEnabled = true;
-        backsound.volume = 0.3;
-      }).catch(e => console.log("Autoplay blocked, waiting for user click"));
-    }
-    // Trigger audio on first user interaction anywhere
-    const enableOnce = () => {
-      enableAudio();
-      document.removeEventListener('click', enableOnce);
-      document.removeEventListener('touchstart', enableOnce);
-    };
-    document.addEventListener('click', enableOnce);
-    document.addEventListener('touchstart', enableOnce);
-    
-    muteBtn.addEventListener('click', (e) => {
+  /* generate grid */
+  const gridContainer = document.getElementById('shape-grid');
+  SHAPES.forEach(shape => {
+    const card = document.createElement('div');
+    card.className = 'shape-card';
+    card.innerHTML = `
+      <div class="card-icon">${shape.emoji}</div>
+      <div class="card-name">${shape.name}</div>
+      <div class="card-hint">Klik 3D</div>
+    `;
+    card.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (backsoundMuted) {
-        backsound.play().catch(e=>console.log);
-        muteBtn.innerHTML = '<span>🔊</span> <span>Backsound</span>';
-      } else {
-        backsound.pause();
-        muteBtn.innerHTML = '<span>🔇</span> <span>Backsound</span>';
-      }
-      backsoundMuted = !backsoundMuted;
+      const clickAudio = document.getElementById('click-sound');
+      if (clickAudio) { clickAudio.currentTime = 0; clickAudio.play().catch(()=>{}); }
+      openDetail(shape);
     });
+    gridContainer.appendChild(card);
+  });
+
+  /* ========= THREE.JS LOGIC (modal 3D) ========= */
+  let currentRenderer = null;
+  let animationFrameId = null;
+
+  function cleanup3D() {
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+    if (currentRenderer) {
+      currentRenderer.dispose();
+      currentRenderer = null;
+    }
+  }
+
+  function openDetail(shape) {
+    document.getElementById('detail-title').innerText = shape.name;
+    const propsList = document.getElementById('detail-props');
+    propsList.innerHTML = '';
+    shape.props.forEach(prop => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span>✦</span><span>${prop}</span>`;
+      propsList.appendChild(li);
+    });
+    document.getElementById('detail-desc').innerText = shape.desc;
+    document.getElementById('detail-modal').classList.add('open');
+    init3DModel(shape.glb);
+  }
+
+  window.closeDetail = function() {
+    document.getElementById('detail-modal').classList.remove('open');
+    cleanup3D();
+  };
+  // tutup modal klik background
+  document.getElementById('detail-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'detail-modal') closeDetail();
+  });
+
+  function init3DModel(glbPath) {
+    cleanup3D();
+
+    const wrap = document.querySelector('.modal-3d-wrap');
+    const oldCanvas = document.getElementById('model-canvas');
+    const newCanvas = document.createElement('canvas');
+    newCanvas.id = 'model-canvas';
+    wrap.replaceChild(newCanvas, oldCanvas);
+
+    const loaderDiv = document.getElementById('loading-indicator');
+    loaderDiv.style.display = 'flex';
+    loaderDiv.innerHTML = '🌀 Memuat model 3D ...';
+
+    const width = wrap.clientWidth || 340;
+    const height = wrap.clientHeight || 280;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050b1a);
+    scene.fog = new THREE.FogExp2(0x050b1a, 0.012);
+
+    // pencahayaan dramatis
+    const ambient = new THREE.AmbientLight(0x3a5c8c, 0.55);
+    scene.add(ambient);
+    const mainLight = new THREE.DirectionalLight(0xfff5e0, 1.2);
+    mainLight.position.set(2, 3, 2.5);
+    scene.add(mainLight);
+    const fillLight = new THREE.PointLight(0x4466cc, 0.6);
+    fillLight.position.set(-1.5, 1.2, 2);
+    scene.add(fillLight);
+    const backLight = new THREE.PointLight(0xffaa66, 0.4);
+    backLight.position.set(0, 1, -2);
+    scene.add(backLight);
     
-    // Tutup modal jika klik di luar
-    document.getElementById('detail-modal').addEventListener('click', (e) => {
-      if (e.target.id === 'detail-modal') closeDetail();
+    // bantuan grid halus (opsional)
+    const gridHelper = new THREE.GridHelper(4, 20, 0x88aaff, 0x335588);
+    gridHelper.position.y = -0.8;
+    gridHelper.material.transparent = true;
+    gridHelper.material.opacity = 0.25;
+    scene.add(gridHelper);
+
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 200);
+    camera.position.set(2, 1.4, 2.8);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ canvas: newCanvas, antialias: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true; // untuk efek bayangan kalau model support
+    currentRenderer = renderer;
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 1.6;
+    controls.enableZoom = true;
+    controls.enablePan = false;
+    controls.target.set(0, 0, 0);
+
+    const loader = new GLTFLoader();
+    loader.load(glbPath, (gltf) => {
+      const model = gltf.scene;
+      const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3()).length();
+      model.position.sub(center);
+      const scale = 2.2 / size;
+      model.scale.set(scale, scale, scale);
+      // material bisa ditambahkan efek outline sederhana (opsional)
+      scene.add(model);
+      loaderDiv.style.display = 'none';
+    }, undefined, (error) => {
+      console.error(error);
+      loaderDiv.innerHTML = '⚠️ Gagal memuat model. Cek file GLB.';
     });
-  </script>
+
+    function animate() {
+      animationFrameId = requestAnimationFrame(animate);
+      controls.update(); // update autoRotate
+      renderer.render(scene, camera);
+    }
+    animate();
+  }
+
+  /* ========= AUDIO MANAGER ========= */
+  const bgSound = document.getElementById('backsound');
+  let muted = false;
+  let audioStarted = false;
+  const startAudio = () => {
+    if (audioStarted) return;
+    audioStarted = true;
+    bgSound.volume = 0.25;
+    bgSound.play().catch(e => console.log("audio play need interaction"));
+  };
+  document.addEventListener('click', startAudio, { once: true });
+  document.addEventListener('touchstart', startAudio, { once: true });
+
+  const muteBtn = document.getElementById('muteBtn');
+  muteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    muted = !muted;
+    if (muted) {
+      bgSound.pause();
+      muteBtn.innerHTML = '🔇 Musik';
+    } else {
+      bgSound.play().catch(()=>{});
+      muteBtn.innerHTML = '🔊 Musik';
+    }
+  });
+</script>
 </body>
 </html>

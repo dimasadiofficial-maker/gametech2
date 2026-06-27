@@ -2,190 +2,480 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Geometry Quiz - SD</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Geometry Quiz | Petualangan Bangun Ruang</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="manifest" href="../manifest.json">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
   <style>
-    body { font-family: 'Outfit', sans-serif; }
-    .correct { background: #22c55e !important; }
-    .wrong { background: #ef4444 !important; }
-    .feedback-show { animation: pop 0.4s ease; }
-    @keyframes pop {
-      0% { transform: scale(0.4); opacity: 0; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      background: radial-gradient(circle at 10% 30%, #0b1120, #020617);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDQwIDQwIj48cGF0aCBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiIHN0cm9rZS13aWR0aD0iMSIgZD0iTTAgMGw0MCA0ME0wIDQwTDQwIDAiLz48L3N2Zz4=');
+      pointer-events: none;
+      opacity: 0.4;
+      z-index: 0;
+    }
+    .quiz-container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 680px;
+      margin: 20px;
+    }
+    .glass-panel {
+      background: rgba(15, 25, 45, 0.7);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 48px;
+      box-shadow: 0 25px 45px -12px rgba(0,0,0,0.5);
+      transition: all 0.2s;
+    }
+    .btn-glow {
+      transition: all 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+      background: linear-gradient(105deg, #3b82f6, #8b5cf6);
+      border: none;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .btn-glow:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 18px rgba(59,130,246,0.5);
+    }
+    .option-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 60px;
+      padding: 14px 12px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      text-align: center;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+    }
+    .option-btn:hover {
+      background: rgba(255,255,255,0.2);
+      transform: translateY(-2px);
+    }
+    .correct-answer {
+      background: #10b981 !important;
+      border-color: #34d399 !important;
+      box-shadow: 0 0 12px #10b98180;
+      transform: scale(1.01);
+    }
+    .wrong-answer {
+      background: #ef4444 !important;
+      border-color: #f87171 !important;
+    }
+    .timer-ring {
+      position: relative;
+      width: 56px;
+      height: 56px;
+    }
+    .timer-ring svg {
+      transform: rotate(-90deg);
+    }
+    .timer-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: white;
+    }
+    @keyframes bounceGlow {
+      0% { transform: scale(0.8); opacity: 0; }
+      80% { transform: scale(1.1); }
       100% { transform: scale(1); opacity: 1; }
+    }
+    .feedback-pop {
+      animation: bounceGlow 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+    .progress-bar {
+      height: 6px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #a855f7);
+      transition: width 0.3s ease;
+    }
+    .rank-badge {
+      background: rgba(0,0,0,0.5);
+      border-radius: 60px;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      backdrop-filter: blur(4px);
     }
   </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center bg-cover bg-center" style="background-image:url('../assets/picture/background.jpg')">
-<div class="absolute inset-0 bg-black/60"></div>
+<body>
 
-<!-- Tombol kembali -->
-<div class="fixed top-4 left-4 z-20">
-  <a href="../index.html" class="bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-sm hover:bg-white/30 transition">← Kembali ke Menu</a>
-</div>
-
-<!-- MENU -->
-<div id="menu" class="relative z-10 w-full max-w-xl p-6">
-  <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-6 text-center">
-    <h1 class="text-3xl font-extrabold mb-2">🎮 Geometry Quiz SD</h1>
-    <p class="text-white/70 mb-6">Khusus Anak Sekolah Dasar</p>
-    <button id="startBtn" class="w-full bg-blue-500 py-3 rounded-xl font-bold text-lg">Mulai Kuis</button>
-  </div>
-</div>
-
-<!-- GAME (awal disembunyikan) -->
-<div id="game" class="hidden relative z-10 w-full max-w-xl p-6">
-  <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-6 text-center">
-    <div class="flex justify-between text-sm mb-2">
-      <div>Skor: <span id="score">0</span></div>
-      <div>Rank: <span id="rank">-</span></div>
-      <div>⏱ <span id="time">15</span></div>
+<div class="quiz-container">
+  <!-- MENU AWAL -->
+  <div id="menuPanel" class="glass-panel p-8 text-center">
+    <div class="mb-4"><span class="text-7xl">📐✨</span></div>
+    <h1 class="text-4xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Petualangan Geometri</h1>
+    <p class="text-white/60 mt-2 mb-6">Uji pengetahuanmu tentang bangun ruang!<br>15 pertanyaan seru + reward spesial</p>
+    <button id="startQuizBtn" class="btn-glow w-full py-4 rounded-2xl text-white text-lg shadow-lg">🚀 Mulai Petualangan</button>
+    <div class="flex justify-center gap-4 mt-6 text-white/50 text-sm">
+      <a href="../index.html" class="hover:text-white transition">← Menu Utama</a>
+      <a href="ar.html" class="hover:text-white transition">📷 AR</a>
+      <a href="game.html" class="hover:text-white transition">🎮 Game</a>
     </div>
-    <div id="questionImg" class="mx-auto mb-6 rounded-2xl w-full max-w-[200px] h-[200px] flex items-center justify-center bg-white/5 p-4 hidden shadow-2xl border border-white/10"></div>
-    <h2 id="question" class="text-lg font-semibold mb-5">Loading...</h2>
-    <div id="options" class="grid grid-cols-2 gap-3"></div>
   </div>
-  <div id="feedback" class="hidden absolute inset-0 flex items-center justify-center text-5xl font-extrabold z-50"></div>
+
+  <!-- PANEL KUIS -->
+  <div id="quizPanel" class="glass-panel p-6 hidden transition-all">
+    <div class="flex justify-between items-center mb-4">
+      <div class="flex items-center gap-2 bg-white/10 rounded-full px-3 py-1">
+        <span class="text-yellow-400">⭐</span>
+        <span id="scoreValue" class="font-bold text-white">0</span>
+      </div>
+      <div class="rank-badge" id="rankBadge">🏁 Pemula</div>
+      <div class="timer-ring">
+        <svg width="56" height="56" viewBox="0 0 56 56">
+          <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,1.0)" stroke-width="4"/>
+          <circle id="timerCircle" cx="28" cy="28" r="24" fill="none" stroke="#60a5fa" stroke-width="4" stroke-dasharray="150.8" stroke-dashoffset="0" stroke-linecap="round"/>
+        </svg>
+        <div class="timer-text" id="timerText">15</div>
+      </div>
+    </div>
+    <div class="progress-bar mb-5">
+      <div id="progressFill" class="progress-fill"></div>
+    </div>
+    <div id="questionImgArea" class="flex justify-center mb-5 min-h-[130px]">
+      <div id="questionIcon" class="w-28 h-28 bg-white/5 rounded-2xl flex items-center justify-center text-6xl shadow-inner"></div>
+    </div>
+    <h2 id="questionText" class="text-xl md:text-2xl font-bold text-white text-center mb-6 leading-tight">Memuat...</h2>
+    <div id="optionsContainer" class="grid grid-cols-2 gap-3 mb-5"></div>
+    <div id="feedbackToast" class="hidden fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-lg px-6 py-3 rounded-full text-white font-bold z-50 border border-white/20 shadow-2xl"></div>
+  </div>
 </div>
 
-<audio id="correct-sound" preload="auto"><source src="../assets/sound/berhasil.mpeg" type="audio/mpeg"></audio>
-<audio id="wrong-sound" preload="auto"><source src="../assets/sound/game%20over.mpeg" type="audio/mpeg"></audio>
-<audio id="click-sound" preload="auto"><source src="../assets/sound/klik.mpeg" type="audio/mpeg"></audio>
+<!-- Audio -->
+<audio id="correctSound" preload="auto"><source src="../assets/sound/berhasil.mpeg" type="audio/mpeg"></audio>
+<audio id="wrongSound" preload="auto"><source src="../assets/sound/game%20over.mpeg" type="audio/mpeg"></audio>
+<audio id="clickSound" preload="auto"><source src="../assets/sound/klik.mpeg" type="audio/mpeg"></audio>
+<audio id="backsoundQuiz" loop preload="auto"><source src="../assets/sound/BacksoundceriauntukvideopembelajaranInstrumenMusikCeria.mpeg" type="audio/mpeg"></audio>
 
 <script>
-// Ikon SVG (diringkas agar tidak terlalu panjang, tetap lengkap)
-const shapeIcons = {
-  'cube.svg': `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M50 20 L80 35 L80 65 L50 80 L20 65 L20 35 Z" fill="#60a5fa"/><path d="M50 20 L80 35 L50 50 L20 35 Z" fill="#93c5fd"/><path d="M50 50 L80 35 L80 65 L50 80 Z" fill="#2563eb"/><path d="M50 20 L80 35 L80 65 L50 80 L20 65 L20 35 Z" fill="none" stroke="#1e3a8a" stroke-width="1.5"/><path d="M20 35 L50 50 L80 35 M50 50 L50 80" fill="none" stroke="#1e3a8a" stroke-width="1.5" stroke-opacity="0.3"/></svg>`,
-  'cuboid.svg': `<svg viewBox="0 0 1００ 1００" class="w-full h-full"><path d="M1５ 4０ L6５ 4０ L8５ 2５ L3５ 2５ Z" fill="#fca５a５"/><path d="M1５ 4０ L6５ 4０ L6５ 7５ L1５ 7５ Z" fill="#ef4444"/><path d="M6５ 4０ L8５ 2５ L8５ 6０ L6５ 7５ Z" fill="#b91c1c"/><path d="M1５ 4０ L6５ 4０ L8５ 2５ L8５ 6０ L6５ 7５ L1５ 7５ Z" fill="none" stroke="#7f1d1d" stroke-width="1.5"/><path d="M6５ 4０ L8５ 2５" fill="none" stroke="#7f1d1d" stroke-width="1.5" stroke-opacity="0.3"/></svg>`,
-  'cone.svg': `<svg viewBox="0 0 100 100" class="w-full h-full"><defs><linearGradient id="coneGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#6b21a8"/><stop offset="50%" stop-color="#a855f7"/><stop offset="100%" stop-color="#7e22ce"/></linearGradient></defs><path d="M50 15 L20 75 A30 10 0 0 0 80 75 Z" fill="url(#coneGrad)" stroke="#4c1d95" stroke-width="1.5"/><ellipse cx="50" cy="75" rx="30" ry="10" fill="#c084fc" fill-opacity="0.3" stroke="#4c1d95" stroke-width="1.5" stroke-dasharray="2 2"/></svg>`,
-  'pyramid-square.svg': `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M50 15 L20 75 L50 85 Z" fill="#f97316"/><path d="M50 15 L80 75 L50 85 Z" fill="#c2410c"/><path d="M50 15 L20 75 L80 75 Z" fill="#fdba74" fill-opacity="0.3"/><path d="M50 15 L20 75 L50 85 L80 75 Z" fill="none" stroke="#7c2d12" stroke-width="1.5"/><path d="M50 15 L50 85" fill="none" stroke="#7c2d12" stroke-width="1.5" stroke-opacity="0.3"/></svg>`,
-  'prism-triangular.svg': `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M25 25 L50 40 L25 80 Z" fill="#06b6d4"/><path d="M25 25 L75 25 L50 40 Z" fill="#67e8f9"/><path d="M75 25 L50 40 L50 80 L75 80 Z" fill="#0e7490"/><path d="M25 25 L75 25 L75 80 L50 80 L25 80 Z" fill="none" stroke="#164e63" stroke-width="1.5"/><path d="M50 40 L25 25 M50 40 L75 25 M50 40 L50 80" fill="none" stroke="#164e63" stroke-width="1.5" stroke-opacity="0.3"/></svg>`,
-  'prism-hexagonal.svg': `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M35 20 L65 20 L75 35 L65 50 L35 50 L25 35 Z" fill="#f9a8d4"/><path d="M25 35 L25 75 L35 90 L35 50 Z" fill="#ec4899"/><path d="M35 50 L35 90 L65 90 L65 50 Z" fill="#db2777"/><path d="M65 50 L65 90 L75 75 L75 35 Z" fill="#9d174d"/><path d="M35 20 L65 20 L75 35 L75 75 L65 90 L35 90 L25 75 L25 35 Z" fill="none" stroke="#831843" stroke-width="1.5"/></svg>`,
-  'cube-net.svg': `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M40 20 H60 V40 H80 V60 H60 V80 H40 V60 H20 V40 H40 Z" fill="none" stroke="white" stroke-width="2" stroke-dasharray="4"/></svg>`
-};
+  // ---------- DATA SOAL (15 soal) ----------
+  const QUESTIONS = [
+    { text: "Berapa jumlah sisi pada bangun ruang KUBUS?", options: ["6", "8", "12", "4"], correct: 0, icon: "🧊", explanation: "Kubus memiliki 6 sisi berbentuk persegi." },
+    { text: "Bangun ruang yang alas dan tutupnya berbentuk lingkaran disebut...", options: ["Tabung", "Kerucut", "Bola", "Prisma"], correct: 0, icon: "🥫", explanation: "Tabung memiliki alas dan tutup lingkaran." },
+    { text: "Bentuk bola yang benar adalah...", options: ["Bulat sempurna", "Kotak", "Lonjong", "Segitiga"], correct: 0, icon: "⚽", explanation: "Bola adalah bangun ruang sisi lengkung yang bulat sempurna." },
+    { text: "Bangun ruang ini memiliki 12 rusuk, 6 sisi, dan 8 titik sudut. Apakah itu?", options: ["Balok", "Prisma Segitiga", "Limas", "Kerucut"], correct: 0, icon: "📦", explanation: "Balok memiliki ciri tersebut." },
+    { text: "Bangun ruang yang memiliki satu titik puncak dan alas berbentuk lingkaran adalah...", options: ["Kerucut", "Tabung", "Bola", "Limas"], correct: 0, icon: "🎩", explanation: "Kerucut memiliki puncak lancip." },
+    { text: "Berapa jumlah rusuk pada Limas Segiempat?", options: ["8", "5", "6", "12"], correct: 0, icon: "🔺", explanation: "Limas segiempat memiliki 8 rusuk (4 alas + 4 tegak)." },
+    { text: "Bangun prisma segitiga memiliki berapa sisi?", options: ["5", "6", "4", "8"], correct: 0, icon: "🔷", explanation: "Prisma segitiga: 2 sisi segitiga + 3 sisi tegak = 5 sisi." },
+    { text: "Bangun ruang yang TIDAK memiliki titik sudut adalah...", options: ["Bola", "Kubus", "Balok", "Limas"], correct: 0, icon: "⚽", explanation: "Bola tidak memiliki titik sudut." },
+    { text: "Jaring-jaring kubus tersusun dari berapa persegi?", options: ["6", "4", "8", "12"], correct: 0, icon: "🧩", explanation: "Jaring-jaring kubus terdiri dari 6 persegi." },
+    { text: "Bangun ruang yang sisi alas dan atasnya berbentuk segitiga disebut...", options: ["Prisma", "Limas", "Kerucut", "Tabung"], correct: 0, icon: "📐", explanation: "Prisma memiliki alas dan tutup yang kongruen." },
+    { text: "Berapa jumlah titik sudut pada prisma segienam?", options: ["12", "8", "10", "6"], correct: 0, icon: "🔶", explanation: "Prisma segienam memiliki 12 titik sudut (2 × 6)." },
+    { text: "Bangun ruang yang memiliki 2 rusuk lengkung adalah...", options: ["Tabung", "Kerucut", "Bola", "Kubus"], correct: 0, icon: "🥫", explanation: "Tabung memiliki 2 rusuk lengkung (alas & tutup)." },
+    { text: "Contoh benda berbentuk balok di rumah adalah...", options: ["Lemari", "Bola dunia", "Topi ulang tahun", "Kaleng susu"], correct: 0, icon: "🗄️", explanation: "Lemari memiliki bentuk balok." },
+    { text: "Dadu berbentuk bangun ruang apa?", options: ["Kubus", "Balok", "Prisma", "Limas"], correct: 0, icon: "🎲", explanation: "Dadu berbentuk kubus." },
+    { text: "Bangun ruang yang hanya memiliki 1 sisi (tanpa rusuk) adalah...", options: ["Bola", "Kerucut", "Tabung", "Prisma"], correct: 0, icon: "⚽", explanation: "Bola hanya memiliki 1 sisi lengkung." }
+  ];
 
-const questionsSD = [
-  { q: "Berapa jumlah sisi pada kubus?", a: ["6", "8", "12", "4"], c: 0, img: "cube.svg" },
-  { q: "Bangun ruang yang memiliki alas dan tutup berbentuk lingkaran adalah...", a: ["Tabung", "Kerucut", "Bola", "Kubus"], c: 0, img: "cylinder.svg" },
-  { q: "Bentuk bola yang benar adalah...", a: ["Bulat", "Kotak", "Lonjong", "Segitiga"], c: 0, img: "sphere.svg" },
-  { q: "Bangun ruang ini disebut dengan...", a: ["Balok", "Kubus", "Prisma", "Limas"], c: 0, img: "cuboid.svg" },
-  { q: "Bangun ruang yang memiliki satu titik puncak lancip adalah...", a: ["Kerucut", "Tabung", "Bola", "Prisma"], c: 0, img: "cone.svg" },
-  { q: "Bangun ruang ini adalah...", a: ["Limas Segiempat", "Prisma", "Balok", "Tabung"], c: 0, img: "pyramid-square.svg" },
-  { q: "Ini adalah gambar dari...", a: ["Prisma Segitiga", "Limas", "Kerucut", "Tabung"], c: 0, img: "prism-triangular.svg" },
-  { q: "Gambar ini menunjukkan pola dari...", a: ["Jaring-jaring", "Sisi", "Rusuk", "Titik Sudut"], c: 0, img: "cube-net.svg" },
-  { q: "Bangun ruang yang memiliki sisi alas dan tutup yang sama (identik) disebut...", a: ["Prisma", "Limas", "Bola", "Kerucut"], c: 0, img: "prism-hexagonal.svg" },
-  { q: "Berapa jumlah titik sudut pada Limas Segiempat?", a: ["5", "4", "6", "8"], c: 0, img: "pyramid-square.svg" }
-];
+  // ---------- VARIABEL GAME ----------
+  let currentQuestions = [];
+  let currentIndex = 0;
+  let score = 0;
+  let timeLeft = 15;
+  let timerInterval = null;
+  let isAnswered = false;
+  let transitioning = false;          
+  let totalQuestions = 15;
+  const circleCircumference = 2 * Math.PI * 24;
 
-let questions = [], index = 0, score = 0, time = 15, timer;
-const correctAudio = document.getElementById('correct-sound');
-const wrongAudio = document.getElementById('wrong-sound');
-const clickAudio = document.getElementById('click-sound');
-let audioEnabled = false;
+  // DOM references
+  const menuPanel = document.getElementById('menuPanel');
+  const quizPanel = document.getElementById('quizPanel');
+  const startBtn = document.getElementById('startQuizBtn');
+  const scoreSpan = document.getElementById('scoreValue');
+  const rankBadge = document.getElementById('rankBadge');
+  const timerText = document.getElementById('timerText');
+  const timerCircle = document.getElementById('timerCircle');
+  const progressFill = document.getElementById('progressFill');
+  const questionText = document.getElementById('questionText');
+  const optionsContainer = document.getElementById('optionsContainer');
+  const questionIcon = document.getElementById('questionIcon');
+  const feedbackToast = document.getElementById('feedbackToast');
 
-function enableAudio() {
-  if (audioEnabled) return;
-  const init = (a) => { a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(e=>{}); };
-  init(correctAudio); init(wrongAudio); init(clickAudio);
-  audioEnabled = true;
-}
-function playCorrect() { if(audioEnabled){ correctAudio.currentTime=0; correctAudio.play(); } }
-function playWrong() { if(audioEnabled){ wrongAudio.currentTime=0; wrongAudio.play(); } }
-function playClick() { if(audioEnabled){ clickAudio.currentTime=0; clickAudio.play(); } }
+  // Audio
+  const correctAudio = document.getElementById('correctSound');
+  const wrongAudio = document.getElementById('wrongSound');
+  const clickAudio = document.getElementById('clickSound');
+  const backsound = document.getElementById('backsoundQuiz');
+  let audioEnabled = false;
 
-function startGame() {
-  enableAudio();
-  questions = [...questionsSD].sort(() => Math.random() - 0.5);
-  index = 0; score = 0;
-  document.getElementById('score').innerText = 0;
-  document.getElementById('menu').classList.add('hidden');
-  document.getElementById('game').classList.remove('hidden');
-  loadQ();
-}
-
-function loadQ() {
-  clearInterval(timer);
-  time = 15;
-  const q = questions[index];
-  document.getElementById('time').innerText = time;
-  document.getElementById('question').innerText = q.q;
-  const imgBox = document.getElementById('questionImg');
-  imgBox.classList.remove('hidden');
-  imgBox.innerHTML = shapeIcons[q.img] || '';
-  const opt = document.getElementById('options');
-  opt.innerHTML = '';
-  q.a.forEach((x, i) => {
-    const btn = document.createElement('button');
-    btn.innerText = x;
-    btn.className = "bg-white/20 p-3 rounded-xl transition hover:bg-white/30";
-    btn.onclick = () => check(i, btn);
-    opt.appendChild(btn);
-  });
-  timer = setInterval(() => {
-    time--;
-    document.getElementById('time').innerText = time;
-    if (time <= 0) next();
-  }, 1000);
-  updateRank();
-}
-
-function check(i, btn) {
-  playClick();
-  const q = questions[index];
-  const btns = document.querySelectorAll('#options button');
-  const feedback = document.getElementById('feedback');
-  feedback.classList.remove('hidden');
-  if (i === q.c) {
-    btn.classList.add('correct');
-    score += 10;
-    playCorrect();
-    feedback.innerText = "✅ BENAR!";
-    feedback.style.color = "#22c55e";
-  } else {
-    btn.classList.add('wrong');
-    btns[q.c].classList.add('correct');
-    playWrong();
-    feedback.innerText = "❌ SALAH!";
-    feedback.style.color = "#ef4444";
+  function enableAudio() {
+    if (audioEnabled) return;
+    const tryPlay = (audio) => {
+      if (audio) audio.play().then(() => { audio.pause(); audio.currentTime = 0; }).catch(() => {});
+    };
+    tryPlay(correctAudio);
+    tryPlay(wrongAudio);
+    tryPlay(clickAudio);
+    tryPlay(backsound);
+    backsound.volume = 0.2;
+    backsound.loop = true;
+    backsound.play().catch(e => console.log("backsound butuh interaksi"));
+    audioEnabled = true;
   }
-  feedback.classList.add('feedback-show');
-  document.getElementById('score').innerText = score;
-  setTimeout(() => {
-    feedback.classList.add('hidden');
-    feedback.classList.remove('feedback-show');
-    next();
-  }, 800);
-}
 
-function next() {
-  clearInterval(timer);
-  index++;
-  if (index >= questions.length) {
-    document.getElementById('question').innerText = "🎉 Kuis Selesai!";
-    document.getElementById('options').innerHTML = `<div class="col-span-2 text-center p-4 text-xl">Skor akhir: ${score}</div>`;
-    document.getElementById('questionImg').classList.add('hidden');
-    const optDiv = document.getElementById('options');
-    const replayBtn = document.createElement('button');
-    replayBtn.innerText = "🔁 Main Lagi";
-    replayBtn.className = "col-span-2 bg-blue-500 p-3 rounded-xl mt-2";
-    replayBtn.onclick = () => { location.reload(); };
-    optDiv.appendChild(replayBtn);
-    return;
+  function playSound(type) {
+    if (!audioEnabled) return;
+    const audio = type === 'correct' ? correctAudio : (type === 'wrong' ? wrongAudio : clickAudio);
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    }
   }
-  loadQ();
-}
 
-function updateRank() {
-  let r = "Pembalap Pemula";
-  if (score >= 40) r = "Pembalap Handal";
-  if (score >= 70) r = "Juara Kelas";
-  if (score >= 90) r = "Legenda Geometri";
-  document.getElementById('rank').innerText = r;
-}
+  function updateRank() {
+    let rank = "🏁 Pemula";
+    if (score >= 60) rank = "⭐ Bintang Muda";
+    if (score >= 90) rank = "🏆 Petualang Handal";
+    if (score >= 120) rank = "👑 Legenda Geometri";
+    rankBadge.innerHTML = rank;
+  }
 
-document.getElementById('startBtn').addEventListener('click', startGame);
+  function rewardMilestone() {
+    if (typeof canvasConfetti !== 'undefined') {
+      if (score === 50 || score === 100 || score === 150) {
+        canvasConfetti({ particleCount: 120, spread: 70, origin: { y: 0.6 }, startVelocity: 15, colors: ['#3b82f6', '#a855f7', '#facc15'] });
+      }
+      if (score >= 130 && score % 10 === 0) {
+        canvasConfetti({ particleCount: 40, spread: 45, origin: { y: 0.7 } });
+      }
+    }
+  }
+
+  function updateTimerUI() {
+    const percent = timeLeft / 15;
+    const dashoffset = circleCircumference * (1 - percent);
+    timerCircle.style.strokeDashoffset = dashoffset;
+    timerText.innerText = timeLeft;
+    timerCircle.style.stroke = timeLeft <= 3 ? "#ef4444" : "#60a5fa";
+  }
+
+  function stopTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = null;
+  }
+
+  function startTimer() {
+    stopTimer();
+    timeLeft = 15;
+    updateTimerUI();
+    timerInterval = setInterval(() => {
+      if (!isAnswered && timeLeft > 0) {
+        timeLeft--;
+        updateTimerUI();
+        if (timeLeft === 0) {
+          clearInterval(timerInterval);
+          handleTimeout();
+        }
+      } else if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+      }
+    }, 1000);
+  }
+
+  function handleTimeout() {
+    if (isAnswered) return;
+    isAnswered = true;
+    playSound('wrong');
+    const q = currentQuestions[currentIndex];
+    showFeedback("⏰ Waktu habis! Jawaban: " + q.options[q.correct], false);
+    // highlight jawaban benar
+    const btns = document.querySelectorAll('.option-btn');
+    if (btns[q.correct]) btns[q.correct].classList.add('correct-answer');
+    setTimeout(() => {
+      nextQuestion();
+    }, 1500);
+  }
+
+  function showFeedback(msg, isCorrect) {
+    feedbackToast.innerText = msg;
+    feedbackToast.classList.remove('hidden');
+    feedbackToast.style.background = isCorrect ? "rgba(16,185,129,0.9)" : "rgba(239,68,68,0.9)";
+    feedbackToast.classList.add('feedback-pop');
+    setTimeout(() => {
+      feedbackToast.classList.add('hidden');
+      feedbackToast.classList.remove('feedback-pop');
+    }, 1200);
+  }
+
+  // Acak pilihan jawaban untuk satu soal
+  function shuffleOptions(question) {
+    const originalOptions = [...question.options];
+    const originalCorrectValue = originalOptions[question.correct];
+    const indices = originalOptions.map((_, idx) => idx);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    const shuffledOptions = indices.map(i => originalOptions[i]);
+    const newCorrectIndex = indices.findIndex(i => i === question.correct);
+    return { ...question, options: shuffledOptions, correct: newCorrectIndex };
+  }
+
+  function loadQuestion() {
+    isAnswered = false;
+    const rawQuestion = currentQuestions[currentIndex];
+    const q = shuffleOptions(rawQuestion);
+
+    questionText.innerText = q.text;
+    questionIcon.innerHTML = `<div class="text-7xl drop-shadow-2xl">${q.icon || "📐"}</div>`;
+
+    optionsContainer.innerHTML = '';
+    q.options.forEach((opt, idx) => {
+      const btn = document.createElement('div');
+      btn.className = "option-btn text-white text-base md:text-lg";
+      btn.innerText = opt;
+      btn.addEventListener('click', function() {
+        if (isAnswered) return;
+        playSound('click');
+        isAnswered = true;
+        stopTimer();
+        timeLeft = 15;
+        updateTimerUI();
+
+        const isCorrect = (idx === q.correct);
+        if (isCorrect) {
+          const gain = 10;
+          score += gain;
+          scoreSpan.innerText = score;
+          playSound('correct');
+          showFeedback(`✅ Benar! +${gain} poin`, true);
+          this.classList.add('correct-answer');
+          rewardMilestone();
+          updateRank();
+        } else {
+          playSound('wrong');
+          showFeedback(`❌ Salah! Jawaban benar: ${q.options[q.correct]}`, false);
+          this.classList.add('wrong-answer');
+          const allBtns = document.querySelectorAll('.option-btn');
+          if (allBtns[q.correct]) allBtns[q.correct].classList.add('correct-answer');
+        }
+        setTimeout(() => {
+          nextQuestion();
+        }, 1300);
+      });
+      optionsContainer.appendChild(btn);
+    });
+
+    startTimer();
+    updateProgress();
+    updateRank();
+  }
+
+  function updateProgress() {
+    const progressPercent = ((currentIndex + 1) / totalQuestions) * 100;
+    progressFill.style.width = `${progressPercent}%`;
+  }
+
+  function nextQuestion() {
+    if (transitioning) return;
+    transitioning = true;
+    currentIndex++;
+    if (currentIndex >= totalQuestions) {
+      finishQuiz();
+    } else {
+      loadQuestion();
+    }
+    setTimeout(() => { transitioning = false; }, 100);
+  }
+
+  function finishQuiz() {
+    stopTimer();
+    const maxScore = totalQuestions * 10;
+    let finalMessage = "", emoji = "";
+    if (score === maxScore) {
+      emoji = "🏆👑🏆";
+      finalMessage = "Sempurna! Kamu benar-benar Legenda Geometri!";
+      if (typeof canvasConfetti !== 'undefined') canvasConfetti({ particleCount: 300, spread: 100, origin: { y: 0.5 }, startVelocity: 20 });
+    } else if (score >= 120) {
+      emoji = "👑✨";
+      finalMessage = "Hebat! Kamu mahir bangun ruang!";
+      if (typeof canvasConfetti !== 'undefined') canvasConfetti({ particleCount: 150, spread: 70 });
+    } else if (score >= 80) {
+      emoji = "⭐🌟";
+      finalMessage = "Kerja bagus! Tingkatkan lagi ya!";
+    } else {
+      emoji = "📚💪";
+      finalMessage = "Terus belajar, kamu pasti bisa!";
+    }
+    questionText.innerHTML = `${emoji}  Kuis Selesai!  ${emoji}<br><span class="text-lg">Skor akhir: ${score} / ${maxScore}</span><br><span class="text-sm text-white/70">${finalMessage}</span>`;
+    questionIcon.innerHTML = `<div class="text-8xl">🏅</div>`;
+    optionsContainer.innerHTML = `
+      <div class="col-span-2 flex flex-col gap-3 mt-4">
+        <button id="restartQuizBtn" class="btn-glow py-3 rounded-xl text-white">🔄 Main Lagi</button>
+        <button id="menuQuizBtn" class="bg-white/10 border border-white/20 py-3 rounded-xl text-white hover:bg-white/20">🏠 Kembali ke Menu</button>
+      </div>
+    `;
+    document.getElementById('restartQuizBtn')?.addEventListener('click', resetAndStart);
+    document.getElementById('menuQuizBtn')?.addEventListener('click', () => { window.location.href = '../index.html'; });
+    updateRank();
+    document.querySelector('.timer-ring').style.opacity = '0.5';
+  }
+
+  function resetAndStart() {
+    currentIndex = 0;
+    score = 0;
+    scoreSpan.innerText = "0";
+    updateRank();
+    currentQuestions = [...QUESTIONS];
+    for (let i = currentQuestions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [currentQuestions[i], currentQuestions[j]] = [currentQuestions[j], currentQuestions[i]];
+    }
+    totalQuestions = currentQuestions.length;
+    document.querySelector('.timer-ring').style.opacity = '1';
+    isAnswered = false;
+    transitioning = false;
+    loadQuestion();
+  }
+
+  function initGame() {
+    enableAudio();
+    menuPanel.classList.add('hidden');
+    quizPanel.classList.remove('hidden');
+    resetAndStart();
+  }
+
+  startBtn.addEventListener('click', initGame);
+
+  // Set default lingkaran timer
+  timerCircle.style.strokeDasharray = circleCircumference;
+  timerCircle.style.strokeDashoffset = 0;
 </script>
 </body>
 </html>
